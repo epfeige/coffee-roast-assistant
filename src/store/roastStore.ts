@@ -65,12 +65,18 @@ function clearTimer() {
   }
 }
 
-const artisanProvider = new ArtisanProvider((status) => {
-  useRoastStore.setState({ wsStatus: status });
-  if (status === 'disconnected' || status === 'error') {
-    useRoastStore.setState({ btLive: null, etLive: null, rorLive: null });
-  }
-});
+const artisanProvider = new ArtisanProvider(
+  (status) => {
+    useRoastStore.setState({ wsStatus: status });
+    if (status === 'disconnected' || status === 'error') {
+      useRoastStore.setState({ btLive: null, etLive: null, rorLive: null });
+    }
+  },
+  (bt, et, ror) => {
+    // Update live values immediately on every frame, even before roast timer starts
+    useRoastStore.setState({ btLive: bt, etLive: et, rorLive: ror });
+  },
+);
 
 export const useRoastStore = create<RoastStore>((set, get) => ({
   selectedProfile: null,
@@ -104,10 +110,10 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
   bridgeIp: '',
   setBridgeIp: (ip) => {
     set({ bridgeIp: ip });
-    AsyncStorage.setItem(BRIDGE_IP_STORAGE_KEY, ip);
-    // Debounce WebSocket connect to avoid thrashing while user types
+    // Debounce both AsyncStorage persist and WebSocket connect to avoid thrashing while user types
     if (bridgeDebounce) clearTimeout(bridgeDebounce);
     bridgeDebounce = setTimeout(() => {
+      AsyncStorage.setItem(BRIDGE_IP_STORAGE_KEY, ip);
       if (ip.trim()) {
         artisanProvider.connect(ip.trim());
       } else {

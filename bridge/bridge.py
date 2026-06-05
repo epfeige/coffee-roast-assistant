@@ -247,9 +247,23 @@ async def handle_app(websocket) -> None:
     bridge.clients[websocket] = queue
     log.info("app client connected — %d client(s)", len(bridge.clients))
     try:
-        while True:
-            payload = await queue.get()
-            await websocket.send(payload)
+        # Listen for both queue payloads and client disconnect so we never
+        # block forever when Artisan is offline and no frames are queued.
+        close_task = asyncio.ensure_future(websocket.wait_closed())
+        try:
+            while True:
+                get_task = asyncio.ensure_future(queue.get())
+                done, _ = await asyncio.wait(
+                    [get_task, close_task],
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if close_task in done:
+                    get_task.cancel()
+                    break
+                payload = get_task.result()
+                await websocket.send(payload)
+        finally:
+            close_task.cancel()
     except ConnectionClosed:
         pass
     finally:

@@ -10,6 +10,7 @@ type BridgeFrame = {
 };
 
 type StatusCallback = (status: WsStatus) => void;
+type FrameCallback = (bt: number | null, et: number | null, ror: number | null) => void;
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -33,9 +34,11 @@ export class ArtisanProvider implements TemperatureProvider {
   private active = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private onStatus: StatusCallback;
+  private onFrame: FrameCallback | null = null;
 
-  constructor(onStatus: StatusCallback) {
+  constructor(onStatus: StatusCallback, onFrame?: FrameCallback) {
     this.onStatus = onStatus;
+    this.onFrame = onFrame ?? null;
   }
 
   getBT(): number | null { return this.bt; }
@@ -85,6 +88,7 @@ export class ArtisanProvider implements TemperatureProvider {
         this.bt  = typeof frame.bt  === 'number' ? frame.bt  : null;
         this.et  = typeof frame.et  === 'number' ? frame.et  : null;
         this.ror = typeof frame.ror === 'number' ? frame.ror : null;
+        this.onFrame?.(this.bt, this.et, this.ror);
       } catch {
         // malformed frame — keep last known values
       }

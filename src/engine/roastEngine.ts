@@ -35,12 +35,12 @@ export function createInitialEngineState(profile: RoastProfile): EngineState {
 }
 
 /**
- * Evaluates the current temperature against the profile and returns
- * the active and next events. This is the core of the state machine —
- * temperature is the only trigger for progression.
+ * Evaluates the current temperature against the profile and advances
+ * one step if BT has reached the next event's threshold.
  *
- * Phase 3: replace `currentTemp` with `provider.getBT()` from ArtisanProvider.
- * See src/engine/temperatureProvider.ts.
+ * NOTE: This function is currently unused. In the Phase 3 UX, event
+ * advancement is entirely user-driven (action buttons in RoastScreen).
+ * Kept for potential future semi-automated mode.
  */
 export function evaluateTemperature(
   profile: RoastProfile,
@@ -56,9 +56,6 @@ export function evaluateTemperature(
   const nextEvent = events[nextIndex];
 
   // Advance ONE step when BT reaches the next event's threshold.
-  // Action acknowledgment is tracked separately in the UI — the engine
-  // never waits for the roaster to tap buttons. This mirrors how Artisan
-  // works: the roast progresses regardless of operator actions.
   if (currentTemp >= nextEvent.trigger.temperature) {
     const currentEvent = nextEvent;
     const upcomingEvent = events[nextIndex + 1] ?? null;

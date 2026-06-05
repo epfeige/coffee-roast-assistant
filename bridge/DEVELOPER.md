@@ -157,11 +157,13 @@ Set:
 - **Action:** WebSocket
 - **Command:**
 ```
-send({"bt": {BT}, "et": {ET}, "t": {t}})
+send({{"bt": {BT}, "et": {ET}, "t": {time}}})
 ```
 
-This uses Artisan's built-in template placeholders. Artisan substitutes live
-values before sending. Official reference:
+Note: double braces `{{` / `}}` are required because Artisan uses `{}` for
+placeholder substitution — single braces would be consumed by the parser.
+The elapsed time placeholder is `{time}` (not `{t}`). Artisan substitutes
+live values before sending. Official reference:
 https://artisan-scope.org/devices/websockets/
 
 ### Undo
@@ -228,8 +230,9 @@ For a closed roastery Wi-Fi, no authentication is needed. If the network is
 shared (e.g. with customers), do **not** bind to `127.0.0.1` — that would also
 block the iPhone, which is a different machine. Instead, either:
 
-- Set `BRIDGE_TOKEN=<secret>` and have the app connect with `?token=<secret>`
-  (the bridge rejects connections without the matching token), and/or
+- Set `BRIDGE_TOKEN=<secret>` on the bridge. Note: the iPhone app does not yet
+  support sending the token — this requires a code change to `ArtisanProvider`.
+  For now, use this only with manual WebSocket clients (e.g. `wscat`), and/or
 - Firewall port 8765 so only the iPhone's IP can reach it.
 
 ### Remote access / tunnelling

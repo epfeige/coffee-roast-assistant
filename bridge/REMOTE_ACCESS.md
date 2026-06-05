@@ -28,7 +28,11 @@ sidesteps both — the app connects to a normal HTTPS hostname and no
 
 ## Authentication is already built in
 
-Whatever tunnel you choose, set a shared secret so only your app can read the feed:
+Whatever tunnel you choose, set a shared secret so only your app can read the feed.
+
+> **Note:** The iPhone app does not yet support sending the token — `ArtisanProvider`
+> currently connects with a plain `ws://<ip>:8765/` URL. Token and `wss://` support
+> require a code change. For now, token auth works only with manual WebSocket clients.
 
 ```bash
 # on the laptop, before starting the bridge

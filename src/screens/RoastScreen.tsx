@@ -145,10 +145,16 @@ export default function RoastScreen({ navigation }: Props) {
   // BT has reached the effective target (within 2°F while rising)
   const btReached = isRising && degreesToTarget !== null && degreesToTarget <= 2 && degreesToTarget >= -2;
 
+  // Charge and Drop are critical steps — pulse their trigger labels throughout the step
+  const isCriticalStep = engineState?.currentEvent?.type === 'action' &&
+    (engineState.currentEvent as ActionEvent).actions.some(a => /charge|drop/i.test(a));
+
   // Gentle pulse for target label (slower, subtler than BT blink)
+  // Pulses when approaching target OR throughout critical steps (Charge/Drop)
+  const shouldPulse = (tempApproaching && !btReached) || isCriticalStep;
   const targetPulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (tempApproaching && !btReached) {
+    if (shouldPulse) {
       const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(targetPulse, { toValue: 0.5, duration: 1200, useNativeDriver: true }),
@@ -160,7 +166,7 @@ export default function RoastScreen({ navigation }: Props) {
     } else {
       targetPulse.setValue(1);
     }
-  }, [tempApproaching, btReached]);
+  }, [shouldPulse]);
 
   // Critical alert: loud "original" sound at 400°F for Charge step only
   const CRITICAL_TEMP = 400;
@@ -179,7 +185,7 @@ export default function RoastScreen({ navigation }: Props) {
   // Action overdue: BT is rising, passed current trigger by 5°F+, and user hasn't confirmed
   const actionOverdue = isLive && isRising && btLive !== null && currentTriggerTemp !== null
     && btLive >= currentTriggerTemp + 5
-    && engineState !== null && engineState.currentEvent?.type === 'action'
+    && engineState !== null && engineState.currentEvent !== null && engineState.currentEvent.type === 'action'
     && !areActionsComplete(engineState, engineState.currentEvent.index);
 
   // Blink when overdue (time), pre-alert (time), approaching target temp (live), or action overdue
@@ -361,12 +367,20 @@ export default function RoastScreen({ navigation }: Props) {
             {/* Info strip: target · remaining · step */}
             <View style={[styles.infoStrip, { backgroundColor: phaseColor }]}>
               <View style={styles.infoStripItem}>
-                <Text style={[styles.infoStripValue, { color: phaseTextColor }]}>
+                <Animated.Text style={[
+                  styles.infoStripValue,
+                  { color: phaseTextColor },
+                  isCriticalStep && { opacity: targetPulse },
+                ]}>
                   {currentTargetTemp}°{currentTargetUnit}
-                </Text>
-                <Text style={[styles.infoStripLabel, { color: phaseTextColor }]}>
+                </Animated.Text>
+                <Animated.Text style={[
+                  styles.infoStripLabel,
+                  { color: phaseTextColor },
+                  isCriticalStep && { opacity: targetPulse },
+                ]}>
                   {currentEvent.trigger.source} trigger
-                </Text>
+                </Animated.Text>
               </View>
               <View style={styles.infoStripItem}>
                 <Animated.Text style={[

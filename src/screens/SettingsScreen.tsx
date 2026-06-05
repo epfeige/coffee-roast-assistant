@@ -19,6 +19,13 @@ type Props = {
 
 const THRESHOLD_OPTIONS = [5, 10, 15, 20, 30];
 
+const statusDotColors: Record<string, { backgroundColor: string }> = {
+  disconnected: { backgroundColor: '#444' },
+  connecting:   { backgroundColor: '#E67E22' },
+  connected:    { backgroundColor: '#2ECC71' },
+  error:        { backgroundColor: '#E74C3C' },
+};
+
 export default function SettingsScreen({ navigation }: Props) {
   const { soundKey, setSoundKey } = useSoundPreference();
   const alertThresholdSeconds = useRoastStore(s => s.alertThresholdSeconds);
@@ -158,7 +165,7 @@ export default function SettingsScreen({ navigation }: Props) {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <View style={[styles.statusDot, styles[`statusDot_${wsStatus}`]]} />
+          <View style={[styles.statusDot, statusDotColors[wsStatus]]} />
         </View>
 
       </ScrollView>
@@ -255,8 +262,4 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
   },
-  statusDot_disconnected: { backgroundColor: '#444' },
-  statusDot_connecting:   { backgroundColor: '#E67E22' },
-  statusDot_connected:    { backgroundColor: '#2ECC71' },
-  statusDot_error:        { backgroundColor: '#E74C3C' },
 });

@@ -330,7 +330,7 @@
         {
           "index": 1,
           "trigger": {
-            "temperature": 405,
+            "temperature": 400,
             "unit": "F",
             "source": "PID"
           },
@@ -433,7 +433,7 @@
         {
           "index": 8,
           "trigger": {
-            "temperature": 416,
+            "temperature": 414,
             "unit": "F",
             "source": "ART"
           },
@@ -447,7 +447,7 @@
         {
           "index": 9,
           "trigger": {
-            "temperature": 428,
+            "temperature": 426,
             "unit": "F",
             "source": "ART"
           },
