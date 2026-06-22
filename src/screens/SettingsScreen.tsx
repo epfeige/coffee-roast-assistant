@@ -4,6 +4,8 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -64,7 +66,8 @@ export default function SettingsScreen({ navigation }: Props) {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* Alert Threshold */}
         <Text style={styles.sectionLabel}>PRE-ALERT THRESHOLD</Text>
@@ -153,15 +156,15 @@ export default function SettingsScreen({ navigation }: Props) {
 
         {/* Artisan Bridge */}
         <Text style={[styles.sectionLabel, { marginTop: 32 }]}>ARTISAN BRIDGE</Text>
-        <Text style={styles.sectionHint}>IP address of the computer running bridge.py (e.g. 192.168.1.42)</Text>
+        <Text style={styles.sectionHint}>Artisan laptop IP and WebLCD port (e.g. 10.20.40.2:8080)</Text>
         <View style={styles.bridgeRow}>
           <TextInput
             style={styles.bridgeInput}
             value={bridgeIp}
             onChangeText={setBridgeIp}
-            placeholder="192.168.1.42"
+            placeholder="10.20.40.2:8080"
             placeholderTextColor="#444"
-            keyboardType="decimal-pad"
+            keyboardType="url"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -169,6 +172,7 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
