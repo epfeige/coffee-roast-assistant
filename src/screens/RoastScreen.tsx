@@ -330,7 +330,7 @@ export default function RoastScreen({ navigation }: Props) {
                 tempApproaching && !btReached && styles.liveBarBTApproaching,
                 btReached && { color: '#5B9A6A' },
               ]}>
-                {Math.round(btLive!)}°F
+                {btLive!.toFixed(1)}°F
               </Animated.Text>
               {rorLive !== null && (
                 <Text style={[styles.liveBarRoR, rorLive > 0 ? styles.rorRising : styles.rorDropping]}>
