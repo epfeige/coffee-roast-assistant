@@ -2,24 +2,19 @@ import { TemperatureProvider } from './temperatureProvider';
 
 type WsStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-type BridgeFrame = {
-  bt: number | null;
-  et: number | null;
-  t: number;
-  ror: number | null;
-};
-
 type StatusCallback = (status: WsStatus) => void;
 type FrameCallback = (bt: number | null, et: number | null, ror: number | null) => void;
 
 const RECONNECT_DELAY_MS = 3000;
 
 /**
- * Phase 3 provider — reads live temperature from the Artisan WebSocket bridge.
+ * Phase 3 provider — reads live temperature from Artisan's WebLCD WebSocket.
  *
- * Connect by calling connect(url). The provider keeps the connection alive with
- * automatic reconnect. Call disconnect() to stop (e.g. when leaving the roast
- * screen or when the user clears the bridge IP).
+ * Artisan's WebLCD server pushes BT/ET as display strings every sample:
+ *   {"data":{"time":"05:30","bt":"385.2","et":"397.4"}}
+ *
+ * Connect by calling connect(ip) where ip includes the port (e.g. "10.20.40.2:8080").
+ * The provider computes RoR locally from successive BT readings.
  *
  * Falls back gracefully: getBT/getET/getRoR return null when disconnected,
  * so the engine stays in manual mode until live data arrives.
@@ -28,6 +23,10 @@ export class ArtisanProvider implements TemperatureProvider {
   private bt: number | null = null;
   private et: number | null = null;
   private ror: number | null = null;
+
+  // RoR computation from successive BT readings
+  private prevBt: number | null = null;
+  private prevBtTime: number | null = null;
 
   private ws: WebSocket | null = null;
   private url: string | null = null;
@@ -47,7 +46,8 @@ export class ArtisanProvider implements TemperatureProvider {
 
   connect(ip: string): void {
     this.disconnect();
-    this.url = `ws://${ip}:8765/`;
+    // User enters "10.20.40.2:8080" — connect to Artisan's WebLCD WebSocket
+    this.url = `ws://${ip}/websocket`;
     this.active = true;
     this._open();
   }
@@ -66,7 +66,27 @@ export class ArtisanProvider implements TemperatureProvider {
     this.bt = null;
     this.et = null;
     this.ror = null;
+    this.prevBt = null;
+    this.prevBtTime = null;
     this.onStatus('disconnected');
+  }
+
+  private _computeRoR(bt: number): number | null {
+    const now = Date.now();
+    if (this.prevBt !== null && this.prevBtTime !== null) {
+      const dtSec = (now - this.prevBtTime) / 1000;
+      if (dtSec > 0.5) {
+        // °F per minute
+        const ror = ((bt - this.prevBt) / dtSec) * 60;
+        this.prevBt = bt;
+        this.prevBtTime = now;
+        return Math.round(ror * 10) / 10;
+      }
+    } else {
+      this.prevBt = bt;
+      this.prevBtTime = now;
+    }
+    return null;
   }
 
   private _open(): void {
@@ -84,10 +104,21 @@ export class ArtisanProvider implements TemperatureProvider {
     ws.onmessage = (event) => {
       if (ws !== this.ws) return;
       try {
-        const frame: BridgeFrame = JSON.parse(event.data as string);
-        this.bt  = typeof frame.bt  === 'number' ? frame.bt  : null;
-        this.et  = typeof frame.et  === 'number' ? frame.et  : null;
-        this.ror = typeof frame.ror === 'number' ? frame.ror : null;
+        const msg = JSON.parse(event.data as string);
+        // WebLCD format: {"data":{"time":"05:30","bt":"385.2","et":"397.4"}}
+        const data = msg?.data;
+        if (!data) return;
+
+        const btVal = parseFloat(data.bt);
+        const etVal = parseFloat(data.et);
+
+        this.bt = isNaN(btVal) ? null : btVal;
+        this.et = isNaN(etVal) ? null : etVal;
+
+        if (this.bt !== null) {
+          this.ror = this._computeRoR(this.bt) ?? this.ror;
+        }
+
         this.onFrame?.(this.bt, this.et, this.ror);
       } catch {
         // malformed frame — keep last known values
@@ -104,6 +135,8 @@ export class ArtisanProvider implements TemperatureProvider {
       this.bt = null;
       this.et = null;
       this.ror = null;
+      this.prevBt = null;
+      this.prevBtTime = null;
       if (this.active) {
         this.onStatus('connecting');
         this._scheduleReconnect();
