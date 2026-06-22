@@ -106,14 +106,19 @@ export class ArtisanProvider implements TemperatureProvider {
       try {
         const msg = JSON.parse(event.data as string);
         // WebLCD format: {"data":{"time":"05:30","bt":"385.2","et":"397.4"}}
+        // Field names may vary (bt/BT/Bean Temp etc.) — try common variants
         const data = msg?.data;
         if (!data) return;
 
-        const btVal = parseFloat(data.bt);
-        const etVal = parseFloat(data.et);
+        const btRaw = data.bt ?? data.BT ?? data['Bean Temp'] ?? data['bean temp'];
+        const etRaw = data.et ?? data.ET ?? data['Env Temp'] ?? data['env temp'];
 
-        this.bt = isNaN(btVal) ? null : btVal;
-        this.et = isNaN(etVal) ? null : etVal;
+        const btVal = parseFloat(btRaw);
+        const etVal = parseFloat(etRaw);
+
+        // Only update if we got a valid number — keep last known value otherwise
+        if (!isNaN(btVal)) this.bt = btVal;
+        if (!isNaN(etVal)) this.et = etVal;
 
         if (this.bt !== null) {
           this.ror = this._computeRoR(this.bt) ?? this.ror;
