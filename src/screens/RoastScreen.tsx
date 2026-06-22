@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   liveBarBT: {
     color: '#FFF',
     fontSize: 42,
-    fontWeight: '600',
+    fontWeight: '400',
     fontVariant: ['tabular-nums'],
   },
   liveBarBTApproaching: {
