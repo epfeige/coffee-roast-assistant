@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { useFonts } from 'expo-font';
 import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
 import RecipeScreen from './src/screens/RecipeScreen';
 import RoastScreen from './src/screens/RoastScreen';
@@ -18,6 +19,9 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'DSEG7': require('./assets/fonts/DSEG7Classic-Bold.ttf'),
+  });
   const loadSettings = useRoastStore(s => s.loadSettings);
   useEffect(() => { loadSettings(); }, []);
 

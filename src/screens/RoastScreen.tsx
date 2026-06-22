@@ -324,14 +324,25 @@ export default function RoastScreen({ navigation }: Props) {
         <View style={styles.liveBarCenter}>
           {isLive ? (
             <>
-              <Animated.Text style={[
-                styles.liveBarBT,
+              <Animated.View style={[
+                { flexDirection: 'row', alignItems: 'baseline' },
                 { opacity: (tempApproaching && !btReached) ? blinkAnim : 1 },
-                tempApproaching && !btReached && styles.liveBarBTApproaching,
-                btReached && { color: '#5B9A6A' },
               ]}>
-                {btLive!.toFixed(1)}°F
-              </Animated.Text>
+                <Animated.Text style={[
+                  styles.liveBarBT,
+                  tempApproaching && !btReached && styles.liveBarBTApproaching,
+                  btReached && { color: '#5B9A6A' },
+                ]}>
+                  {btLive!.toFixed(1)}
+                </Animated.Text>
+                <Text style={[
+                  styles.liveBarBTUnit,
+                  tempApproaching && !btReached && styles.liveBarBTApproaching,
+                  btReached && { color: '#5B9A6A' },
+                ]}>
+                  °F
+                </Text>
+              </Animated.View>
               {rorLive !== null && (
                 <Text style={[styles.liveBarRoR, rorLive > 0 ? styles.rorRising : styles.rorDropping]}>
                   {rorLive > 0 ? '▲' : '▼'} {Math.abs(Math.round(rorLive))}°/min
@@ -620,8 +631,13 @@ const styles = StyleSheet.create({
   liveBarBT: {
     color: '#FFF',
     fontSize: 42,
+    fontFamily: 'DSEG7',
+  },
+  liveBarBTUnit: {
+    color: '#FFF',
+    fontSize: 20,
     fontWeight: '400',
-    fontVariant: ['tabular-nums'],
+    marginLeft: 2,
   },
   liveBarBTApproaching: {
     color: '#FFB347',
