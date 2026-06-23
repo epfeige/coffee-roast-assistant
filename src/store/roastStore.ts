@@ -178,8 +178,9 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
 
     const newEngineState = advanceToNextEvent(engineState, selectedProfile);
 
-    // Start timer when leaving index 0 (first event confirmed)
-    if (engineState.currentEventIndex === 0 && roastStartedAt === null) {
+    // Start timer when Charge is confirmed (index 1), matching Artisan's convention
+    // of resetting the clock at charge. Step 0 (preheat) has no running timer.
+    if (engineState.currentEventIndex === 1 && roastStartedAt === null) {
       const now = Date.now() - testOffsetSeconds * 1000;
       clearTimer();
       timerInterval = setInterval(() => {

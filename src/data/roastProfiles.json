@@ -347,7 +347,7 @@
         {
           "index": 2,
           "trigger": {
-            "temperature": 250,
+            "temperature": 240,
             "unit": "F",
             "source": "ART"
           },
@@ -375,7 +375,7 @@
         {
           "index": 4,
           "trigger": {
-            "temperature": 300,
+            "temperature": 290,
             "unit": "F",
             "source": "ART"
           },
@@ -447,7 +447,7 @@
         {
           "index": 9,
           "trigger": {
-            "temperature": 426,
+            "temperature": 425,
             "unit": "F",
             "source": "ART"
           },
@@ -476,7 +476,7 @@
         }
       ],
       "recipe": "18 lbs",
-      "dtp_target": 28
+      "dtp_target": 25
     },
     {
       "id": "profile_1780267446042",

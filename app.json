@@ -25,7 +25,8 @@
       "favicon": "./assets/E46-logo.jpg"
     },
     "plugins": [
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ]
   }
 }
