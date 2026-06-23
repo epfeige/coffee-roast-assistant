@@ -27,8 +27,8 @@ const SCENARIO = process.env.SCENARIO || "happy";
 // ── Temperature curves (copied from mock_artisan.js) ──────────────
 
 function happyBT(t) {
-  const RISE_END = 150, RISE_START = 370, CHARGE_T = 405;
-  const DROP_END = 240, TP_TEMP = 165;
+  const RISE_END = 150, RISE_START = 368, CHARGE_T = 405;
+  const DROP_END = 240, TP_TEMP = 175;
   if (t <= 0) return RISE_START;
   if (t < RISE_END) return RISE_START + (CHARGE_T - RISE_START) * (t / RISE_END);
   if (t < DROP_END) {
@@ -38,7 +38,7 @@ function happyBT(t) {
   return climbBT(t - DROP_END);
 }
 
-const _climbCache = [165];
+const _climbCache = [175];
 function climbBT(dt) {
   while (_climbCache.length <= dt) {
     const s = _climbCache.length;
