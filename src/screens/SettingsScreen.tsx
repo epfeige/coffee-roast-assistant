@@ -34,6 +34,10 @@ export default function SettingsScreen({ navigation }: Props) {
   const setAlertThreshold = useRoastStore(s => s.setAlertThreshold);
   const bridgeIp = useRoastStore(s => s.bridgeIp);
   const setBridgeIp = useRoastStore(s => s.setBridgeIp);
+  const devBridgeIp = useRoastStore(s => s.devBridgeIp);
+  const setDevBridgeIp = useRoastStore(s => s.setDevBridgeIp);
+  const useDevBridge = useRoastStore(s => s.useDevBridge);
+  const setUseDevBridge = useRoastStore(s => s.setUseDevBridge);
   const wsStatus = useRoastStore(s => s.wsStatus);
   const tempAlertMinF = useRoastStore(s => s.tempAlertMinF);
   const setTempAlertMinF = useRoastStore(s => s.setTempAlertMinF);
@@ -155,21 +159,50 @@ export default function SettingsScreen({ navigation }: Props) {
         </View>
 
         {/* Artisan Bridge */}
-        <Text style={[styles.sectionLabel, { marginTop: 32 }]}>ARTISAN BRIDGE</Text>
-        <Text style={styles.sectionHint}>Artisan laptop IP and WebLCD port (e.g. 10.20.40.2:8080)</Text>
-        <View style={styles.bridgeRow}>
-          <TextInput
-            style={styles.bridgeInput}
-            value={bridgeIp}
-            onChangeText={setBridgeIp}
-            placeholder="10.20.40.2:8080"
-            placeholderTextColor="#444"
-            keyboardType="url"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
+        <Text style={[styles.sectionLabel, { marginTop: 32 }]}>ARTISAN CONNECTION</Text>
+
+        {/* Toggle */}
+        <View style={styles.bridgeToggleRow}>
+          <TouchableOpacity
+            style={[styles.bridgeToggle, !useDevBridge && styles.bridgeToggleActive]}
+            onPress={() => setUseDevBridge(false)}
+          >
+            <Text style={[styles.bridgeToggleText, !useDevBridge && styles.bridgeToggleTextActive]}>Roastery</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bridgeToggle, useDevBridge && styles.bridgeToggleActive]}
+            onPress={() => setUseDevBridge(true)}
+          >
+            <Text style={[styles.bridgeToggleText, useDevBridge && styles.bridgeToggleTextActive]}>Dev / Mock</Text>
+          </TouchableOpacity>
           <View style={[styles.statusDot, statusDotColors[wsStatus]]} />
         </View>
+
+        {/* Roastery IP */}
+        <Text style={[styles.bridgeFieldLabel, !useDevBridge && styles.bridgeFieldLabelActive]}>Roastery</Text>
+        <TextInput
+          style={[styles.bridgeInput, !useDevBridge && styles.bridgeInputActive]}
+          value={bridgeIp}
+          onChangeText={setBridgeIp}
+          placeholder="10.20.40.2:8080"
+          placeholderTextColor="#444"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {/* Dev / Mock IP */}
+        <Text style={[styles.bridgeFieldLabel, { marginTop: 12 }, useDevBridge && styles.bridgeFieldLabelActive]}>Dev / Mock</Text>
+        <TextInput
+          style={[styles.bridgeInput, useDevBridge && styles.bridgeInputActive]}
+          value={devBridgeIp}
+          onChangeText={setDevBridgeIp}
+          placeholder="192.168.1.10:8080"
+          placeholderTextColor="#444"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
       </ScrollView>
       </KeyboardAvoidingView>
@@ -245,13 +278,37 @@ const styles = StyleSheet.create({
   soundDesc: { color: '#555', fontSize: 13, marginTop: 2 },
   checkmark: { color: '#FFB347', fontSize: 18, fontWeight: '700' },
 
-  bridgeRow: {
+  bridgeToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    marginBottom: 16,
+  },
+  bridgeToggle: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+  },
+  bridgeToggleActive: {
+    backgroundColor: '#7C4A00',
+    borderColor: '#E67E22',
+  },
+  bridgeToggleText: { color: '#666', fontSize: 14, fontWeight: '600' },
+  bridgeToggleTextActive: { color: '#FFB347' },
+  bridgeFieldLabel: {
+    color: '#444',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  bridgeFieldLabelActive: {
+    color: '#888',
   },
   bridgeInput: {
-    flex: 1,
     backgroundColor: '#1E1E1E',
     borderRadius: 12,
     borderWidth: 1,
@@ -260,6 +317,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  bridgeInputActive: {
+    borderColor: '#E67E22',
   },
   statusDot: {
     width: 12,

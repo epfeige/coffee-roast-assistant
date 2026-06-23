@@ -13,6 +13,8 @@ import { ArtisanProvider } from '../engine/artisanProvider';
 
 const THRESHOLD_STORAGE_KEY = '@alert_threshold';
 const BRIDGE_IP_STORAGE_KEY = '@bridge_ip';
+const DEV_BRIDGE_IP_STORAGE_KEY = '@dev_bridge_ip';
+const USE_DEV_BRIDGE_KEY = '@use_dev_bridge';
 const TEMP_ALERT_MIN_F_KEY = '@temp_alert_min_f';
 const TEMP_ALERT_MAX_F_KEY = '@temp_alert_max_f';
 const TEMP_ALERT_PCT_KEY = '@temp_alert_pct';
@@ -43,6 +45,10 @@ interface RoastStore {
   // Artisan bridge
   bridgeIp: string;
   setBridgeIp: (ip: string) => void;
+  devBridgeIp: string;
+  setDevBridgeIp: (ip: string) => void;
+  useDevBridge: boolean;
+  setUseDevBridge: (val: boolean) => void;
   wsStatus: 'disconnected' | 'connecting' | 'connected' | 'error';
   btLive: number | null;
   etLive: number | null;
@@ -62,6 +68,15 @@ function clearTimer() {
   if (timerInterval !== null) {
     clearInterval(timerInterval);
     timerInterval = null;
+  }
+}
+
+function connectActiveIp(state: { useDevBridge: boolean; bridgeIp: string; devBridgeIp: string }) {
+  const ip = (state.useDevBridge ? state.devBridgeIp : state.bridgeIp).trim();
+  if (ip) {
+    artisanProvider.connect(ip);
+  } else {
+    artisanProvider.disconnect();
   }
 }
 
@@ -113,27 +128,40 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
   },
 
   bridgeIp: '',
+  devBridgeIp: '',
+  useDevBridge: false,
   setBridgeIp: (ip) => {
     set({ bridgeIp: ip });
-    // Debounce both AsyncStorage persist and WebSocket connect to avoid thrashing while user types
     if (bridgeDebounce) clearTimeout(bridgeDebounce);
     bridgeDebounce = setTimeout(() => {
       AsyncStorage.setItem(BRIDGE_IP_STORAGE_KEY, ip);
-      if (ip.trim()) {
-        artisanProvider.connect(ip.trim());
-      } else {
-        artisanProvider.disconnect();
-      }
+      // Only reconnect if this is the active source
+      if (!get().useDevBridge) connectActiveIp(get());
     }, 800);
+  },
+  setDevBridgeIp: (ip) => {
+    set({ devBridgeIp: ip });
+    if (bridgeDebounce) clearTimeout(bridgeDebounce);
+    bridgeDebounce = setTimeout(() => {
+      AsyncStorage.setItem(DEV_BRIDGE_IP_STORAGE_KEY, ip);
+      if (get().useDevBridge) connectActiveIp(get());
+    }, 800);
+  },
+  setUseDevBridge: (val) => {
+    set({ useDevBridge: val });
+    AsyncStorage.setItem(USE_DEV_BRIDGE_KEY, val ? '1' : '0');
+    connectActiveIp(get());
   },
   wsStatus: 'disconnected',
   btLive: null,
   etLive: null,
   rorLive: null,
   loadSettings: async () => {
-    const [thresholdVal, bridgeIpVal, minFVal, maxFVal, pctVal] = await Promise.all([
+    const [thresholdVal, bridgeIpVal, devBridgeIpVal, useDevVal, minFVal, maxFVal, pctVal] = await Promise.all([
       AsyncStorage.getItem(THRESHOLD_STORAGE_KEY),
       AsyncStorage.getItem(BRIDGE_IP_STORAGE_KEY),
+      AsyncStorage.getItem(DEV_BRIDGE_IP_STORAGE_KEY),
+      AsyncStorage.getItem(USE_DEV_BRIDGE_KEY),
       AsyncStorage.getItem(TEMP_ALERT_MIN_F_KEY),
       AsyncStorage.getItem(TEMP_ALERT_MAX_F_KEY),
       AsyncStorage.getItem(TEMP_ALERT_PCT_KEY),
@@ -154,10 +182,11 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
       const parsed = parseInt(pctVal, 10);
       if (!isNaN(parsed)) set({ tempAlertPct: parsed });
     }
-    if (bridgeIpVal !== null) {
-      set({ bridgeIp: bridgeIpVal });
-      if (bridgeIpVal.trim()) artisanProvider.connect(bridgeIpVal.trim());
-    }
+    const useDev = useDevVal === '1';
+    if (bridgeIpVal !== null) set({ bridgeIp: bridgeIpVal });
+    if (devBridgeIpVal !== null) set({ devBridgeIp: devBridgeIpVal });
+    set({ useDevBridge: useDev });
+    connectActiveIp({ useDevBridge: useDev, bridgeIp: bridgeIpVal ?? '', devBridgeIp: devBridgeIpVal ?? '' });
   },
 
   selectProfile: (profile) => {
