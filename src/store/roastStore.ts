@@ -72,9 +72,14 @@ const artisanProvider = new ArtisanProvider(
       useRoastStore.setState({ btLive: null, etLive: null, rorLive: null });
     }
   },
-  (bt, et, ror) => {
+  (bt, et, ror, artisanElapsed) => {
     // Update live values immediately on every frame, even before roast timer starts
-    useRoastStore.setState({ btLive: bt, etLive: et, rorLive: ror });
+    const update: Record<string, unknown> = { btLive: bt, etLive: et, rorLive: ror };
+    // Use Artisan's elapsed time when available (primary timer source)
+    if (artisanElapsed !== null && useRoastStore.getState().roastStartedAt !== null) {
+      update.elapsedSeconds = artisanElapsed;
+    }
+    useRoastStore.setState(update);
   },
 );
 
@@ -186,7 +191,12 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
       timerInterval = setInterval(() => {
         const { engineState: es, roastStartedAt: startedAt, alertThresholdSeconds: threshold } = get();
         if (!startedAt) return;
-        const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+
+        // Prefer Artisan's elapsed time (from WebLCD); fall back to local timer
+        const artisanElapsed = artisanProvider.getElapsedSeconds();
+        const localElapsed = Math.floor((Date.now() - startedAt) / 1000);
+        const elapsed = artisanElapsed ?? localElapsed;
+
         const { preAlertActive, secondsUntilNext } = evaluatePreAlert(
           elapsed,
           es?.currentEvent ?? null,

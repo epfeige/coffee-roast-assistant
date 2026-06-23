@@ -421,7 +421,9 @@ export default function RoastScreen({ navigation }: Props) {
                   const done = completedActions[currentEvent.index]?.[i] ?? false;
                   if (done) return null; // confirmed actions disappear
                   // In live mode: locked until BT has risen to trigger (latched — stays unlocked)
-                  const canTap = !isLive || tempReachedLatched;
+                  // Preheat (index 0) is always tappable — it's preparation, not temp-gated
+                  const isPreheat = engineState.currentEventIndex === 0;
+                  const canTap = !isLive || isPreheat || tempReachedLatched;
                   // Overdue: BT rising, passed the target by 5°F+, user hasn't confirmed — blink
                   const overdue = canTap && isLive && isRising && btLive !== null && currentTriggerTemp !== null && btLive >= currentTriggerTemp + 5;
                   return (

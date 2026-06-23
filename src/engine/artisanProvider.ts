@@ -3,7 +3,7 @@ import { TemperatureProvider } from './temperatureProvider';
 type WsStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 type StatusCallback = (status: WsStatus) => void;
-type FrameCallback = (bt: number | null, et: number | null, ror: number | null) => void;
+type FrameCallback = (bt: number | null, et: number | null, ror: number | null, elapsedSeconds: number | null) => void;
 
 const RECONNECT_DELAY_MS = 3000;
 
@@ -23,6 +23,7 @@ export class ArtisanProvider implements TemperatureProvider {
   private bt: number | null = null;
   private et: number | null = null;
   private ror: number | null = null;
+  private elapsedSeconds: number | null = null;
 
   // RoR computation from successive BT readings
   private prevBt: number | null = null;
@@ -43,6 +44,7 @@ export class ArtisanProvider implements TemperatureProvider {
   getBT(): number | null { return this.bt; }
   getET(): number | null { return this.et; }
   getRoR(): number | null { return this.ror; }
+  getElapsedSeconds(): number | null { return this.elapsedSeconds; }
 
   connect(ip: string): void {
     this.disconnect();
@@ -66,6 +68,7 @@ export class ArtisanProvider implements TemperatureProvider {
     this.bt = null;
     this.et = null;
     this.ror = null;
+    this.elapsedSeconds = null;
     this.prevBt = null;
     this.prevBtTime = null;
     this.onStatus('disconnected');
@@ -120,11 +123,22 @@ export class ArtisanProvider implements TemperatureProvider {
         if (!isNaN(btVal)) this.bt = btVal;
         if (!isNaN(etVal)) this.et = etVal;
 
+        // Parse Artisan's elapsed time (format: "MM:SS" or "H:MM:SS")
+        const timeRaw = data.time ?? data.Time;
+        if (typeof timeRaw === 'string' && timeRaw.includes(':')) {
+          const parts = timeRaw.split(':').map(Number);
+          if (parts.length === 2 && parts.every(n => !isNaN(n))) {
+            this.elapsedSeconds = parts[0] * 60 + parts[1];
+          } else if (parts.length === 3 && parts.every(n => !isNaN(n))) {
+            this.elapsedSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2];
+          }
+        }
+
         if (this.bt !== null) {
           this.ror = this._computeRoR(this.bt) ?? this.ror;
         }
 
-        this.onFrame?.(this.bt, this.et, this.ror);
+        this.onFrame?.(this.bt, this.et, this.ror, this.elapsedSeconds);
       } catch {
         // malformed frame — keep last known values
       }
@@ -140,6 +154,7 @@ export class ArtisanProvider implements TemperatureProvider {
       this.bt = null;
       this.et = null;
       this.ror = null;
+      this.elapsedSeconds = null;
       this.prevBt = null;
       this.prevBtTime = null;
       if (this.active) {
