@@ -26,13 +26,18 @@ const SCENARIO = process.env.SCENARIO || "happy";
 
 // ── Temperature curves (copied from mock_artisan.js) ──────────────
 
+// Charge happens at RISE_END — Artisan resets its clock to 0:00 at this point.
+const RISE_END = 20;  // 368→405 in ~20s (realistic for E46 preheat)
+// Timer resets to 0:00 at charge (RISE_END), matching real Artisan behaviour
+
 function happyBT(t) {
-  const RISE_END = 150, RISE_START = 368, CHARGE_T = 405;
-  const DROP_END = 240, TP_TEMP = 175;
+  const RISE_START = 368, CHARGE_T = 405;
+  const DROP_DUR = 60, TP_TEMP = 175; // drop takes ~60s to reach turning point
+  const DROP_END = RISE_END + DROP_DUR;
   if (t <= 0) return RISE_START;
   if (t < RISE_END) return RISE_START + (CHARGE_T - RISE_START) * (t / RISE_END);
   if (t < DROP_END) {
-    const p = (t - RISE_END) / (DROP_END - RISE_END);
+    const p = (t - RISE_END) / DROP_DUR;
     return CHARGE_T + (TP_TEMP - CHARGE_T) * (1 - Math.pow(1 - p, 2));
   }
   return climbBT(t - DROP_END);
@@ -58,11 +63,12 @@ function climbRoR(s) {
 }
 
 function happyET(t) {
+  const DROP_END = RISE_END + 60;
   if (t <= 0) return 460;
-  if (t < 150) return 460 + 10 * (t / 150);
-  if (t < 240) return 470 - 50 * ((t - 150) / 90);
+  if (t < RISE_END) return 460 + 10 * (t / RISE_END);
+  if (t < DROP_END) return 470 - 50 * ((t - RISE_END) / 60);
   const bt = happyBT(t);
-  return bt + 80 - 20 * Math.min(1, (t - 240) / 660);
+  return bt + 80 - 20 * Math.min(1, (t - DROP_END) / 660);
 }
 
 function round1(x) { return Math.round(x * 10) / 10; }
@@ -86,9 +92,11 @@ function webLcdFrame(simT) {
     bt = happyBT(simT);
     et = happyET(simT);
   }
+  // Artisan resets timer to 0:00 at charge — before charge, time counts up normally
+  const displayTime = simT < RISE_END ? simT : simT - RISE_END;
   return {
     data: {
-      time: formatTime(simT),
+      time: formatTime(displayTime),
       bt: String(round1(bt)),
       et: String(round1(et)),
     }
