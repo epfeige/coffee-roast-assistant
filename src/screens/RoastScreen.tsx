@@ -217,16 +217,58 @@ export default function RoastScreen({ navigation }: Props) {
       }).catch(() => {/* silent fail */});
   }).current;
 
-  // Normal alert: clave (or user-selected sound) on temp approach
-  const prevAlertRef = useRef(false);
+  // Three-phase temperature alert:
+  //   1. Entry: sound + haptic when BT first enters alert zone
+  //   2. Approach: haptic every ~0.5°F (no sound — avoids fatigue)
+  //   3. Countdown: 3 sounds at 3°F, 2°F, 1°F from target
+  const HAPTIC_STEP_F = 0.5;
+  const COUNTDOWN_DEGREES = [3, 2, 1];
+
+  const entryFiredRef = useRef(false);
+  const lastHapticBtRef = useRef<number | null>(null);
+  const countdownFiredRef = useRef<Set<number>>(new Set());
+  const prevTargetRef = useRef<number | null>(null);
+
+  // Reset all alert state when target changes (step advance)
+  if (effectiveTarget !== prevTargetRef.current) {
+    prevTargetRef.current = effectiveTarget;
+    entryFiredRef.current = false;
+    lastHapticBtRef.current = null;
+    countdownFiredRef.current = new Set();
+  }
+
   useEffect(() => {
-    if (tempApproaching && !prevAlertRef.current) {
+    if (!tempApproaching || btLive === null || degreesToTarget === null) {
+      return;
+    }
+
+    // Phase 1: Entry — sound + haptic on first entering alert zone
+    if (!entryFiredRef.current) {
+      entryFiredRef.current = true;
+      lastHapticBtRef.current = btLive;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (currentOption.require !== null) playSound(currentOption.require);
+      return;
     }
-    prevAlertRef.current = tempApproaching;
+
+    // Phase 3: Countdown — check before haptic so countdown sound takes priority
+    for (const deg of COUNTDOWN_DEGREES) {
+      if (degreesToTarget <= deg && !countdownFiredRef.current.has(deg)) {
+        countdownFiredRef.current.add(deg);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        if (currentOption.require !== null) playSound(currentOption.require);
+        lastHapticBtRef.current = btLive;
+        return;
+      }
+    }
+
+    // Phase 2: Approach — haptic every ~0.5°F, no sound
+    if (lastHapticBtRef.current !== null && btLive - lastHapticBtRef.current >= HAPTIC_STEP_F) {
+      lastHapticBtRef.current = btLive;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tempApproaching]);
+  }, [btLive]);
 
   // Critical alert: loud original sound at 400°F for Charge
   const criticalFiredRef = useRef(false);
