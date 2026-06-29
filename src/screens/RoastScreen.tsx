@@ -720,13 +720,13 @@ const s = StyleSheet.create({
     letterSpacing: 1.2,
   },
   gasValue: {
-    color: '#FFB347',
+    color: '#4DA6FF',
     fontSize: 22,
     fontWeight: '700',
     marginTop: 1,
   },
   airValue: {
-    color: '#FFB347',
+    color: '#4DA6FF',
     fontSize: 22,
     fontWeight: '700',
     marginTop: 1,
