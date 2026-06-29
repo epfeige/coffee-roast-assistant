@@ -43,8 +43,15 @@
 - [x] All React hooks moved before early return (Rules of Hooks fix)
 - [x] Settings screen — alert threshold (5/10/15/20/30s) + sound picker (7 options, previews on tap)
 - [x] 6 roaster-appropriate alert sounds in assets/sounds/ (woodblock, wood pop, click/snap, clave, bell ×2)
-- [x] Sound preference persisted via AsyncStorage; threshold stored in Zustand
+- [x] Sound preference persisted via AsyncStorage; alert threshold persisted via AsyncStorage
 - [x] ⚙️ gear icon on profile select screen navigates to Settings
+- [x] RecipeScreen — shows recipe text and DTP target between profile select and active roast
+- [x] `recipe` and `dtp_target` fields added to RoastProfile type and JSON
+- [x] Step counter: action events show "N/total · step", info events show "Info N · note"
+- [x] Admin: Recipe textarea and DTP input per profile
+- [x] Admin: event cards show "Step N" / "Info N" labels with index tooltip
+- [x] Phase header layout: phase label · estimated time (blinks red/amber) · elapsed · profile name
+- [x] Temp badge layout: time remaining (left) · temperature ref (centre) · step counter (right)
 
 ---
 
@@ -54,12 +61,23 @@
 
 ---
 
-## Phase 3 — Artisan Integration (future)
-- [ ] Research Artisan WebSocket / MQTT API
-- [ ] Live temperature feed from Artisan
-- [ ] Automated event triggering when thresholds are reached
-- [ ] ROR prediction using live data
-- [ ] Semi-automated roasting assistance mode
+## Phase 3 — Artisan Integration (in progress — feat/phase-3-artisan)
+- [x] `TemperatureProvider` abstraction interface + `ManualProvider` stub (`src/engine/temperatureProvider.ts`)
+- [x] Python WebSocket bridge (`bridge/bridge.py`) — relays Artisan data to iPhone app
+- [x] Bridge hardened for websockets ≥13, defensive coercion, RoR calculation, per-client queues (PR #4)
+- [x] Bridge developer docs + Node.js test harness (`bridge/proto/`) — all 5 scenarios pass
+- [x] Bridge venv setup (`bridge/.venv/`), gitignored; `run-tests.js` Python path fixed
+- [x] Bridge IP input + connection status dot in Settings screen (persisted via AsyncStorage)
+- [x] `ArtisanProvider` built (`src/engine/artisanProvider.ts`) — WebSocket, auto-reconnect, status callback
+- [x] Wire `ArtisanProvider` into Zustand store — `btLive` drives `evaluateTemperature()` auto-advance
+- [x] Live BT + RoR display in RoastScreen (two-header layout, always visible)
+- [x] Temperature-driven alerts: `clamp(minF, gap×pct%, maxF)`, rising-only, configurable in Settings
+- [x] User-driven advancement: action buttons (amber→green→red blink), no auto-advance
+- [x] Two-tier alerts: clave (all steps) + loud original at 400°F (Charge critical)
+- [x] Effective target logic (adapts to pre-charge rise vs post-charge climb)
+- [x] Realistic E46 mock curve (S-curve sigmoid, 370→405→165→410°F)
+- [ ] Windows laptop testing with real Artisan
+- [ ] Semi-automated roasting assistance mode (future)
 
 ---
 

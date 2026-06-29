@@ -35,12 +35,14 @@ export function createInitialEngineState(profile: RoastProfile): EngineState {
 }
 
 /**
- * Evaluates the current temperature against the profile and returns
- * the active and next events. This is the core of the state machine —
- * temperature is the only trigger for progression.
+ * Evaluates the current temperature against the profile and advances
+ * one step if BT has reached the next event's threshold.
  *
- * Phase 3: replace `currentTemp` with `provider.getBT()` from ArtisanProvider.
- * See src/engine/temperatureProvider.ts.
+ * NOTE: This function is currently UNUSED. All event advancement is
+ * manual — the user taps the advance button, which calls
+ * `advanceToNextEvent`. This auto-advance path is preserved for a
+ * potential future Phase 3 auto-advance mode where the engine could
+ * automatically progress steps when BT crosses thresholds.
  */
 export function evaluateTemperature(
   profile: RoastProfile,
@@ -50,28 +52,27 @@ export function evaluateTemperature(
   if (state.isComplete) return state;
 
   const events = profile.events;
-  let newIndex = state.currentEventIndex;
+  const nextIndex = state.currentEventIndex + 1;
+  if (nextIndex >= events.length) return state;
 
-  // Advance through events whose temperature threshold has been reached
-  for (let i = state.currentEventIndex; i < events.length; i++) {
-    if (currentTemp >= events[i].trigger.temperature) {
-      newIndex = i;
-    } else {
-      break;
-    }
+  const nextEvent = events[nextIndex];
+
+  // Advance ONE step when BT reaches the next event's threshold.
+  if (currentTemp >= nextEvent.trigger.temperature) {
+    const currentEvent = nextEvent;
+    const upcomingEvent = events[nextIndex + 1] ?? null;
+    const isComplete = nextIndex === events.length - 1 && currentEvent?.phase === 'end';
+
+    return {
+      ...state,
+      currentEvent,
+      nextEvent: upcomingEvent,
+      currentEventIndex: nextIndex,
+      isComplete,
+    };
   }
 
-  const currentEvent = events[newIndex] ?? null;
-  const nextEvent = events[newIndex + 1] ?? null;
-  const isComplete = newIndex === events.length - 1 && currentEvent?.phase === 'end';
-
-  return {
-    ...state,
-    currentEvent,
-    nextEvent,
-    currentEventIndex: newIndex,
-    isComplete,
-  };
+  return state;
 }
 
 /**
@@ -128,9 +129,10 @@ export function evaluatePreAlert(
 }
 
 /**
- * MVP 1: Manually advance to the next event in sequence.
- * Temperature-driven advancement is preserved in evaluateTemperature
- * for use in Phase 2/3 — this is the manual override for Phase 1.
+ * Manually advance to the next event in sequence.
+ * This is the active advancement path used by RoastScreen.
+ * Temperature-driven advancement (evaluateTemperature) is preserved
+ * but currently unused — see its docstring for details.
  */
 export function advanceToNextEvent(
   state: EngineState,

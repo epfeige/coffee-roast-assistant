@@ -330,7 +330,7 @@
         {
           "index": 1,
           "trigger": {
-            "temperature": 405,
+            "temperature": 400,
             "unit": "F",
             "source": "PID"
           },
@@ -347,7 +347,7 @@
         {
           "index": 2,
           "trigger": {
-            "temperature": 250,
+            "temperature": 240,
             "unit": "F",
             "source": "ART"
           },
@@ -375,7 +375,7 @@
         {
           "index": 4,
           "trigger": {
-            "temperature": 300,
+            "temperature": 290,
             "unit": "F",
             "source": "ART"
           },
@@ -433,7 +433,7 @@
         {
           "index": 8,
           "trigger": {
-            "temperature": 416,
+            "temperature": 414,
             "unit": "F",
             "source": "ART"
           },
@@ -447,7 +447,7 @@
         {
           "index": 9,
           "trigger": {
-            "temperature": 428,
+            "temperature": 425,
             "unit": "F",
             "source": "ART"
           },
@@ -476,7 +476,7 @@
         }
       ],
       "recipe": "18 lbs",
-      "dtp_target": 28
+      "dtp_target": 25
     },
     {
       "id": "profile_1780267446042",
@@ -796,7 +796,7 @@
     },
     {
       "id": "profile_1780316459682",
-      "name": "Defat - SWP Braz",
+      "name": "Decaf - SWP Braz",
       "roaster": "E46",
       "events": [
         {

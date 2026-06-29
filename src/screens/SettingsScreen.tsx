@@ -1,8 +1,11 @@
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,10 +21,30 @@ type Props = {
 
 const THRESHOLD_OPTIONS = [5, 10, 15, 20, 30];
 
+const statusDotColors: Record<string, { backgroundColor: string }> = {
+  disconnected: { backgroundColor: '#444' },
+  connecting:   { backgroundColor: '#E67E22' },
+  connected:    { backgroundColor: '#2ECC71' },
+  error:        { backgroundColor: '#E74C3C' },
+};
+
 export default function SettingsScreen({ navigation }: Props) {
   const { soundKey, setSoundKey } = useSoundPreference();
   const alertThresholdSeconds = useRoastStore(s => s.alertThresholdSeconds);
   const setAlertThreshold = useRoastStore(s => s.setAlertThreshold);
+  const bridgeIp = useRoastStore(s => s.bridgeIp);
+  const setBridgeIp = useRoastStore(s => s.setBridgeIp);
+  const devBridgeIp = useRoastStore(s => s.devBridgeIp);
+  const setDevBridgeIp = useRoastStore(s => s.setDevBridgeIp);
+  const useDevBridge = useRoastStore(s => s.useDevBridge);
+  const setUseDevBridge = useRoastStore(s => s.setUseDevBridge);
+  const wsStatus = useRoastStore(s => s.wsStatus);
+  const tempAlertMinF = useRoastStore(s => s.tempAlertMinF);
+  const setTempAlertMinF = useRoastStore(s => s.setTempAlertMinF);
+  const tempAlertMaxF = useRoastStore(s => s.tempAlertMaxF);
+  const setTempAlertMaxF = useRoastStore(s => s.setTempAlertMaxF);
+  const tempAlertPct = useRoastStore(s => s.tempAlertPct);
+  const setTempAlertPct = useRoastStore(s => s.setTempAlertPct);
 
   async function previewSound(key: AlertSoundKey) {
     const option = SOUND_OPTIONS.find(o => o.key === key);
@@ -47,7 +70,8 @@ export default function SettingsScreen({ navigation }: Props) {
         <View style={styles.backButton} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
 
         {/* Alert Threshold */}
         <Text style={styles.sectionLabel}>PRE-ALERT THRESHOLD</Text>
@@ -85,7 +109,103 @@ export default function SettingsScreen({ navigation }: Props) {
           </TouchableOpacity>
         ))}
 
+        {/* Temperature Alert */}
+        <Text style={[styles.sectionLabel, { marginTop: 32 }]}>LIVE TEMP ALERT</Text>
+        <Text style={styles.sectionHint}>Alert when BT is within this range of the next target (live mode only)</Text>
+
+        <Text style={[styles.sectionLabel, { marginTop: 16, fontSize: 11 }]}>MINIMUM °F</Text>
+        <View style={styles.pillRow}>
+          {[2, 3, 5, 8, 10].map(val => (
+            <TouchableOpacity
+              key={val}
+              style={[styles.pill, tempAlertMinF === val && styles.pillActive]}
+              onPress={() => setTempAlertMinF(val)}
+            >
+              <Text style={[styles.pillText, tempAlertMinF === val && styles.pillTextActive]}>
+                {val}°F
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionLabel, { marginTop: 16, fontSize: 11 }]}>MAXIMUM °F</Text>
+        <View style={styles.pillRow}>
+          {[8, 10, 15, 20, 25].map(val => (
+            <TouchableOpacity
+              key={val}
+              style={[styles.pill, tempAlertMaxF === val && styles.pillActive]}
+              onPress={() => setTempAlertMaxF(val)}
+            >
+              <Text style={[styles.pillText, tempAlertMaxF === val && styles.pillTextActive]}>
+                {val}°F
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionLabel, { marginTop: 16, fontSize: 11 }]}>% OF GAP</Text>
+        <View style={styles.pillRow}>
+          {[15, 20, 30, 40, 50].map(val => (
+            <TouchableOpacity
+              key={val}
+              style={[styles.pill, tempAlertPct === val && styles.pillActive]}
+              onPress={() => setTempAlertPct(val)}
+            >
+              <Text style={[styles.pillText, tempAlertPct === val && styles.pillTextActive]}>
+                {val}%
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Artisan Bridge */}
+        <Text style={[styles.sectionLabel, { marginTop: 32 }]}>ARTISAN CONNECTION</Text>
+
+        {/* Toggle */}
+        <View style={styles.bridgeToggleRow}>
+          <TouchableOpacity
+            style={[styles.bridgeToggle, !useDevBridge && styles.bridgeToggleActive]}
+            onPress={() => setUseDevBridge(false)}
+          >
+            <Text style={[styles.bridgeToggleText, !useDevBridge && styles.bridgeToggleTextActive]}>Roastery</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.bridgeToggle, useDevBridge && styles.bridgeToggleActive]}
+            onPress={() => setUseDevBridge(true)}
+          >
+            <Text style={[styles.bridgeToggleText, useDevBridge && styles.bridgeToggleTextActive]}>Dev / Mock</Text>
+          </TouchableOpacity>
+          <View style={[styles.statusDot, statusDotColors[wsStatus]]} />
+        </View>
+
+        {/* Roastery IP */}
+        <Text style={[styles.bridgeFieldLabel, !useDevBridge && styles.bridgeFieldLabelActive]}>Roastery</Text>
+        <TextInput
+          style={[styles.bridgeInput, !useDevBridge && styles.bridgeInputActive]}
+          value={bridgeIp}
+          onChangeText={setBridgeIp}
+          placeholder="10.20.40.2:8080"
+          placeholderTextColor="#444"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {/* Dev / Mock IP */}
+        <Text style={[styles.bridgeFieldLabel, { marginTop: 12 }, useDevBridge && styles.bridgeFieldLabelActive]}>Dev / Mock</Text>
+        <TextInput
+          style={[styles.bridgeInput, useDevBridge && styles.bridgeInputActive]}
+          value={devBridgeIp}
+          onChangeText={setDevBridgeIp}
+          placeholder="192.168.1.10:8080"
+          placeholderTextColor="#444"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -157,4 +277,53 @@ const styles = StyleSheet.create({
   soundLabelActive: { color: '#FFB347' },
   soundDesc: { color: '#555', fontSize: 13, marginTop: 2 },
   checkmark: { color: '#FFB347', fontSize: 18, fontWeight: '700' },
+
+  bridgeToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 16,
+  },
+  bridgeToggle: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: '#1E1E1E',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+  },
+  bridgeToggleActive: {
+    backgroundColor: '#7C4A00',
+    borderColor: '#E67E22',
+  },
+  bridgeToggleText: { color: '#666', fontSize: 14, fontWeight: '600' },
+  bridgeToggleTextActive: { color: '#FFB347' },
+  bridgeFieldLabel: {
+    color: '#444',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  bridgeFieldLabelActive: {
+    color: '#888',
+  },
+  bridgeInput: {
+    backgroundColor: '#1E1E1E',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    color: '#FFF',
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  bridgeInputActive: {
+    borderColor: '#E67E22',
+  },
+  statusDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
 });

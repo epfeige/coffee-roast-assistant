@@ -17,7 +17,7 @@ import { ActionEvent, InfoEvent } from '../types';
 import { areActionsComplete } from '../engine/roastEngine';
 import { formatTime } from '../utils/formatTime';
 import { RootStackParamList } from '../../App';
-import { useSoundPreference } from '../hooks/useSoundPreference';
+import { useSoundPreference, SOUND_OPTIONS } from '../hooks/useSoundPreference';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Roast'>;
@@ -33,14 +33,167 @@ export default function RoastScreen({ navigation }: Props) {
   const elapsedSeconds  = useRoastStore(s => s.elapsedSeconds);
   const roastStartedAt  = useRoastStore(s => s.roastStartedAt);
   const preAlertActive  = useRoastStore(s => s.preAlertActive);
-  const secondsUntilNext = useRoastStore(s => s.secondsUntilNext);
+  const btLive          = useRoastStore(s => s.btLive);
+  const rorLive         = useRoastStore(s => s.rorLive);
+  const wsStatus        = useRoastStore(s => s.wsStatus);
+  const bridgeIp        = useRoastStore(s => s.bridgeIp);
+  const devBridgeIp     = useRoastStore(s => s.devBridgeIp);
+  const useDevBridge    = useRoastStore(s => s.useDevBridge);
+  const tempAlertMinF   = useRoastStore(s => s.tempAlertMinF);
+  const tempAlertMaxF   = useRoastStore(s => s.tempAlertMaxF);
+  const tempAlertPct    = useRoastStore(s => s.tempAlertPct);
+  const isLive = btLive !== null && wsStatus === 'connected';
+  const activeIp = useDevBridge ? devBridgeIp : bridgeIp;
+  const showManualWarning = activeIp.trim() !== '' && wsStatus !== 'connected' && wsStatus !== 'connecting';
 
-  // Derived values computed before hooks (use optional chaining for safety)
+  // Derived timer values
   const currentEst = engineState?.currentEvent?.estimated_time_seconds ?? null;
   const isOverdue = roastStartedAt !== null && currentEst !== null && elapsedSeconds > currentEst;
-  const shouldBlink = isOverdue || (currentEst === null && preAlertActive);
 
-  // Blink animation — must be before early return
+  const timerDisplay = roastStartedAt !== null ? formatTime(elapsedSeconds) : null;
+  const timeRemaining = roastStartedAt !== null && currentEst !== null
+    ? currentEst - elapsedSeconds : null;
+  const timeRemainingDisplay = timeRemaining !== null
+    ? (timeRemaining < 0 ? `-${formatTime(Math.abs(timeRemaining))}` : formatTime(timeRemaining))
+    : '--:--';
+
+  // Current event's target temp (what we need to be at for this step)
+  const currentTriggerTemp = engineState?.currentEvent?.trigger.temperature ?? null;
+  // Next event's target temp (what we're heading towards)
+  const nextTriggerTemp = engineState?.nextEvent?.trigger.temperature ?? null;
+
+
+  // Effective target: what BT is climbing towards right now
+  // - If BT < current trigger: approaching current step (e.g. rising to 405 for charge)
+  // - If BT > current trigger and next is higher: approaching next step
+  // - If temp is dropping: no effective target (no alert)
+  const isRising = rorLive !== null && rorLive > 0;
+
+  // Latch: once BT rises to the trigger from below, the button stays unlocked.
+  // Resets on step change. Requires BT to have been below the trigger first
+  // (prevents false latch when BT is high but dropping through a lower target).
+  const tempReachedRef = useRef(false);
+  const seenBelowRef = useRef(false);
+  const stepIndexRef = useRef(engineState?.currentEventIndex ?? -1);
+  if (engineState && engineState.currentEventIndex !== stepIndexRef.current) {
+    stepIndexRef.current = engineState.currentEventIndex;
+    tempReachedRef.current = false;
+    seenBelowRef.current = false;
+  }
+  if (btLive !== null && currentTriggerTemp !== null && btLive < currentTriggerTemp) {
+    seenBelowRef.current = true;
+  }
+  if (seenBelowRef.current && isRising && btLive !== null && currentTriggerTemp !== null && btLive >= currentTriggerTemp - 2) {
+    tempReachedRef.current = true;
+  }
+  const tempReachedLatched = tempReachedRef.current;
+  const { effectiveTarget, effectiveGap, effectiveTargetEst } = (() => {
+    if (!isLive || btLive === null || !isRising) return { effectiveTarget: null, effectiveGap: null, effectiveTargetEst: null };
+
+    // BT hasn't reached current event's trigger yet (e.g. climbing to charge at 405)
+    if (currentTriggerTemp !== null && btLive < currentTriggerTemp) {
+      const prevIndex = (engineState?.currentEventIndex ?? 1) - 1;
+      const prevTrigger = prevIndex >= 0
+        ? selectedProfile?.events[prevIndex]?.trigger.temperature ?? null : null;
+      const gap = prevTrigger !== null && currentTriggerTemp > prevTrigger
+        ? currentTriggerTemp - prevTrigger : null;
+      const est = engineState?.currentEvent?.estimated_time_seconds ?? null;
+      return { effectiveTarget: currentTriggerTemp, effectiveGap: gap, effectiveTargetEst: est };
+    }
+
+    // Normal case: heading towards next trigger (must be higher than current BT)
+    if (nextTriggerTemp !== null && nextTriggerTemp > btLive) {
+      const gap = currentTriggerTemp !== null && nextTriggerTemp > currentTriggerTemp
+        ? nextTriggerTemp - currentTriggerTemp : null;
+      const est = engineState?.nextEvent?.estimated_time_seconds ?? null;
+      return { effectiveTarget: nextTriggerTemp, effectiveGap: gap, effectiveTargetEst: est };
+    }
+
+    return { effectiveTarget: null, effectiveGap: null, effectiveTargetEst: null };
+  })();
+
+  // ETA to effective target (advisory, biased slightly early)
+  // Uses RoR-based projection when RoR is stable (≥5°F/min), otherwise
+  // falls back to profile time estimates. When both are available, takes
+  // the minimum so the roaster is warned sooner rather than later.
+  const MIN_ROR_FOR_ETA = 5; // °F/min — below this RoR is too unstable
+  const etaSeconds: number | null = (() => {
+    if (!isLive || btLive === null || effectiveTarget === null) return null;
+    const delta = effectiveTarget - btLive;
+    if (delta <= 0) return 0;
+
+    // RoR-based ETA (only when RoR is stable enough)
+    const rorEta = (rorLive !== null && rorLive >= MIN_ROR_FOR_ETA)
+      ? Math.round((delta / rorLive) * 60)
+      : null;
+
+    // Time-based ETA from profile estimates
+    const timeEta = (effectiveTargetEst !== null && roastStartedAt !== null)
+      ? Math.max(0, effectiveTargetEst - elapsedSeconds)
+      : null;
+
+    // Use whichever is available; if both, take the smaller (err early)
+    if (rorEta !== null && timeEta !== null) return Math.min(rorEta, timeEta);
+    return rorEta ?? timeEta;
+  })();
+
+  // Temperature approach alert: fires only when rising towards target
+  const tempAlertThreshold = (effectiveGap !== null && effectiveGap > 0)
+    ? Math.min(tempAlertMaxF, Math.max(tempAlertMinF, Math.round(effectiveGap * tempAlertPct / 100)))
+    : tempAlertMinF;
+  const degreesToTarget = (effectiveTarget !== null && btLive !== null)
+    ? effectiveTarget - btLive : null;
+  const tempApproaching = isRising && degreesToTarget !== null && degreesToTarget > 0 && degreesToTarget <= tempAlertThreshold;
+
+  // BT has reached the effective target (within 2°F while rising)
+  const btReached = isRising && degreesToTarget !== null && degreesToTarget <= 2 && degreesToTarget >= -2;
+
+  // Charge and Drop are critical steps — pulse their trigger labels throughout the step
+  const isCriticalStep = engineState?.currentEvent?.type === 'action' &&
+    (engineState.currentEvent as ActionEvent).actions.some(a => /charge|drop/i.test(a));
+
+  // Gentle pulse for target label (slower, subtler than BT blink)
+  // Pulses when approaching target OR throughout critical steps (Charge/Drop)
+  const shouldPulse = (tempApproaching && !btReached) || isCriticalStep;
+  const targetPulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (shouldPulse) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(targetPulse, { toValue: 0.5, duration: 1200, useNativeDriver: true }),
+          Animated.timing(targetPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      targetPulse.setValue(1);
+    }
+  }, [shouldPulse]);
+
+  // Critical alert: loud "original" sound at 400°F for Charge step only
+  const CRITICAL_TEMP = 400;
+  const isChargeNext = (() => {
+    if (!selectedProfile || !engineState) return false;
+    // Check if the effective target belongs to a Charge event
+    const nextIdx = engineState.currentEventIndex + 1;
+    const targetEvent = (currentTriggerTemp !== null && btLive !== null && btLive < currentTriggerTemp)
+      ? engineState.currentEvent
+      : (nextIdx < selectedProfile.events.length ? selectedProfile.events[nextIdx] : null);
+    if (!targetEvent || targetEvent.type !== 'action') return false;
+    return (targetEvent as ActionEvent).actions.some(a => a.toLowerCase().includes('charge'));
+  })();
+  const criticalAlert = isLive && isChargeNext && isRising && btLive !== null && btLive >= CRITICAL_TEMP && btLive < (effectiveTarget ?? Infinity);
+
+  // Action overdue: BT is rising, passed current trigger by 5°F+, and user hasn't confirmed
+  const actionOverdue = isLive && isRising && btLive !== null && currentTriggerTemp !== null
+    && btLive >= currentTriggerTemp + 5
+    && engineState !== null && engineState.currentEvent !== null && engineState.currentEvent.type === 'action'
+    && !areActionsComplete(engineState, engineState.currentEvent.index);
+
+  // Blink when overdue (time), pre-alert (time), approaching target temp (live), or action overdue
+  const shouldBlink = isOverdue || preAlertActive || tempApproaching || criticalAlert || actionOverdue;
+
   const blinkAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (shouldBlink) {
@@ -57,27 +210,82 @@ export default function RoastScreen({ navigation }: Props) {
     }
   }, [shouldBlink]);
 
-  // Fire haptic + sound once each time pre-alert becomes active — must be before early return
-  const prevPreAlert = useRef(false);
+  // Play a sound file helper
+  const playSound = useRef((soundRequire: number) => {
+    Audio.Sound.createAsync(soundRequire, { shouldPlay: true, volume: 1.0 })
+      .then(({ sound }) => {
+        sound.setOnPlaybackStatusUpdate(status => {
+          if ('didJustFinish' in status && status.didJustFinish) sound.unloadAsync();
+        });
+      }).catch(() => {/* silent fail */});
+  }).current;
+
+  // Three-phase temperature alert:
+  //   1. Entry: sound + haptic when BT first enters alert zone
+  //   2. Approach: haptic every ~0.5°F (no sound — avoids fatigue)
+  //   3. Countdown: 3 sounds at 3°F, 2°F, 1°F from target
+  const HAPTIC_STEP_F = 0.5;
+  const COUNTDOWN_DEGREES = [3, 2, 1];
+
+  const entryFiredRef = useRef(false);
+  const lastHapticBtRef = useRef<number | null>(null);
+  const countdownFiredRef = useRef<Set<number>>(new Set());
+  const prevTargetRef = useRef<number | null>(null);
+
+  // Reset all alert state when target changes (step advance)
+  if (effectiveTarget !== prevTargetRef.current) {
+    prevTargetRef.current = effectiveTarget;
+    entryFiredRef.current = false;
+    lastHapticBtRef.current = null;
+    countdownFiredRef.current = new Set();
+  }
+
   useEffect(() => {
-    if (preAlertActive && !prevPreAlert.current) {
+    if (!tempApproaching || btLive === null || degreesToTarget === null) {
+      return;
+    }
+
+    // Phase 1: Entry — sound + haptic on first entering alert zone
+    if (!entryFiredRef.current) {
+      entryFiredRef.current = true;
+      lastHapticBtRef.current = btLive;
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      if (currentOption.require !== null) {
-        Audio.Sound.createAsync(
-          currentOption.require,
-          { shouldPlay: true, volume: 1.0 },
-        ).then(({ sound }) => {
-          sound.setOnPlaybackStatusUpdate(status => {
-            if ('didJustFinish' in status && status.didJustFinish) sound.unloadAsync();
-          });
-        }).catch(() => {/* silent fail */});
+      if (currentOption.require !== null) playSound(currentOption.require);
+      return;
+    }
+
+    // Phase 3: Countdown — check before haptic so countdown sound takes priority
+    for (const deg of COUNTDOWN_DEGREES) {
+      if (degreesToTarget <= deg && !countdownFiredRef.current.has(deg)) {
+        countdownFiredRef.current.add(deg);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        if (currentOption.require !== null) playSound(currentOption.require);
+        lastHapticBtRef.current = btLive;
+        return;
       }
     }
-    prevPreAlert.current = preAlertActive;
-  // currentOption intentionally omitted: we only want to fire on the rising edge of
-  // preAlertActive, not re-fire if the user changes sound while an alert is active.
+
+    // Phase 2: Approach — haptic every ~0.5°F, no sound
+    if (lastHapticBtRef.current !== null && btLive - lastHapticBtRef.current >= HAPTIC_STEP_F) {
+      lastHapticBtRef.current = btLive;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preAlertActive]);
+  }, [btLive]);
+
+  // Critical alert: loud original sound at 400°F for Charge
+  const criticalFiredRef = useRef(false);
+  const criticalSoundRequire = SOUND_OPTIONS.find(o => o.key === 'alert')?.require ?? null;
+  useEffect(() => {
+    if (criticalAlert && !criticalFiredRef.current) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (criticalSoundRequire !== null) playSound(criticalSoundRequire);
+      criticalFiredRef.current = true;
+    }
+    // Reset when we move past charge (effective target changes)
+    if (!isChargeNext) criticalFiredRef.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticalAlert, isChargeNext]);
 
   if (!engineState || !selectedProfile) return null;
 
@@ -85,37 +293,36 @@ export default function RoastScreen({ navigation }: Props) {
   const phase = currentEvent?.phase ?? 'preheat';
   const phaseColor = PHASE_COLORS[phase];
   const phaseTextColor = PHASE_TEXT_COLORS[phase];
+
   const actionEvents = selectedProfile.events.filter(e => e.type === 'action');
   const totalSteps   = actionEvents.length;
   const isInfoEvent  = currentEvent?.type === 'info';
-  // For action events: which action step number is this?
   const actionStepNumber = currentEvent
     ? selectedProfile.events.slice(0, (currentEvent.index ?? 0) + 1).filter(e => e.type === 'action').length
     : 0;
-  // Info counter (for info events)
   const infoNumber = currentEvent
     ? selectedProfile.events.slice(0, (currentEvent.index ?? 0) + 1).filter(e => e.type === 'info').length
     : 0;
   const stepLabel = isInfoEvent ? `Info ${infoNumber}` : `${actionStepNumber}/${totalSteps}`;
 
-  const actionsComplete = currentEvent
-    ? areActionsComplete(engineState, currentEvent.index)
-    : true;
+  // Track whether the engine has moved ahead of acknowledged actions.
+  // When the engine advances past a step whose actions weren't confirmed,
+  // those actions become "overdue" — the buttons should blink.
+  const pendingAcks: number[] = [];
+  if (engineState && selectedProfile) {
+    for (let i = 0; i < engineState.currentEventIndex; i++) {
+      const ev = selectedProfile.events[i];
+      if (ev.type === 'action' && !areActionsComplete(engineState, ev.index)) {
+        pendingAcks.push(ev.index);
+      }
+    }
+  }
 
-  const canAdvance = currentEvent?.type === 'info' || actionsComplete;
+  const profileShort = (selectedProfile.name ?? '').slice(0, 10);
 
-  const timerDisplay = roastStartedAt !== null ? formatTime(elapsedSeconds) : null;
-
-  const currentEstDisplay = currentEst !== null ? formatTime(currentEst) : '--:--'; 
-  // Time remaining = est - elapsed (negative means overdue)
-  const timeRemaining = roastStartedAt !== null && currentEst !== null
-    ? currentEst - elapsedSeconds
-    : null;
-  const timeRemainingDisplay = timeRemaining !== null
-    ? (timeRemaining < 0 ? `-${formatTime(Math.abs(timeRemaining))}` : formatTime(timeRemaining))
-    : '--:--';
-
-  const profileShort = (selectedProfile.name ?? '').slice(0, 8);
+  // Current event's target temp (for the action card info strip)
+  const currentTargetTemp = currentEvent?.trigger.temperature ?? null;
+  const currentTargetUnit = currentEvent?.trigger.unit ?? 'F';
 
   function handleExit() {
     resetRoast();
@@ -124,93 +331,178 @@ export default function RoastScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Phase header */}
-      <View style={[styles.phaseBar, { backgroundColor: phaseColor }]}>
-        <Text style={[styles.phaseLabel, { color: phaseTextColor }]}>
+
+      {/* ─── Top header: phase + mode + profile ─── */}
+      <View style={[styles.topHeader, { backgroundColor: phaseColor }]}>
+        <Text style={[styles.topHeaderPhase, { color: phaseTextColor }]}>
           {PHASE_LABELS[phase]}
         </Text>
-        {timerDisplay && (
-          <View style={styles.timerGroup}>
-            <Animated.Text style={[
-              styles.currentEstDisplay,
-              { color: phaseTextColor, opacity: blinkAnim },
-              isOverdue && { color: '#FF4444', fontWeight: '800' },
-              (currentEst === null && preAlertActive) && { color: '#FFB347', fontWeight: '800' },
-            ]}>
-              {currentEstDisplay}
-            </Animated.Text>
-            <Text style={[styles.timerDisplay, { color: phaseTextColor }]}>
-              ▶ {timerDisplay}
-            </Text>
-          </View>
-        )}
-        <Text style={[styles.profileName, { color: phaseTextColor }]}>
+        {isLive ? (
+          <Text style={styles.modeIndicatorLive}>● LIVE</Text>
+        ) : showManualWarning ? (
+          <Text style={styles.modeIndicatorManual}>⚠ MANUAL</Text>
+        ) : null}
+        <Text style={[styles.topHeaderProfile, { color: phaseTextColor }]}>
           {profileShort}
         </Text>
       </View>
 
+      {/* ─── Live bar: target / BT / elapsed — always visible ─── */}
+      <View style={styles.liveBar}>
+        {/* Left — effective target + ETA */}
+        <View style={styles.liveBarSide}>
+          <Animated.Text style={[
+            styles.liveBarValue,
+            { fontSize: 24 },
+            tempApproaching && !btReached && { color: '#5B9A6A', opacity: targetPulse },
+            btReached && { color: '#5B9A6A' },
+          ]}>
+            {effectiveTarget !== null ? `${effectiveTarget}°F` : (currentTriggerTemp !== null ? `${currentTriggerTemp}°F` : '—')}
+          </Animated.Text>
+          <Text style={styles.liveBarLabel}>target</Text>
+          {etaSeconds !== null && etaSeconds > 0 && (
+            <Text style={styles.liveBarEta}>~{formatTime(etaSeconds)}</Text>
+          )}
+        </View>
+
+        {/* Centre — live BT (or ref temp in manual mode) */}
+        <View style={styles.liveBarCenter}>
+          {isLive ? (
+            <>
+              <Animated.View style={[
+                { flexDirection: 'row', alignItems: 'baseline' },
+                { opacity: (tempApproaching && !btReached) ? blinkAnim : 1 },
+              ]}>
+                <Animated.Text style={[
+                  styles.liveBarBT,
+                  tempApproaching && !btReached && styles.liveBarBTApproaching,
+                  btReached && { color: '#5B9A6A' },
+                ]}>
+                  {btLive!.toFixed(1)}
+                </Animated.Text>
+                <Text style={[
+                  styles.liveBarBTUnit,
+                  tempApproaching && !btReached && styles.liveBarBTApproaching,
+                  btReached && { color: '#5B9A6A' },
+                ]}>
+                  °F
+                </Text>
+              </Animated.View>
+              {rorLive !== null && (
+                <Text style={[styles.liveBarRoR, rorLive > 0 ? styles.rorRising : styles.rorDropping]}>
+                  {rorLive > 0 ? '▲' : '▼'} {Math.abs(Math.round(rorLive))}°/min
+                </Text>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.liveBarBT}>
+                {currentTargetTemp !== null ? `${currentTargetTemp}°${currentTargetUnit}` : '—'}
+              </Text>
+              <Text style={styles.liveBarRefLabel}>ref temp</Text>
+            </>
+          )}
+        </View>
+
+        {/* Right — elapsed time */}
+        <View style={styles.liveBarSide}>
+          <Text style={styles.liveBarValue}>
+            {timerDisplay ?? '--:--'}
+          </Text>
+          <Text style={styles.liveBarLabel}>elapsed</Text>
+        </View>
+      </View>
+
+      {/* ─── Scrollable content ─── */}
       <ScrollView contentContainerStyle={styles.scroll}>
 
         {/* Current event */}
         {currentEvent && !isComplete && (
-          <View style={[styles.eventCard, styles.eventCardMain]}>
-            {/* Temperature reference (informational only in MVP 1) */}
-            <View style={[styles.tempBadge, { backgroundColor: phaseColor }]}>
-              <View style={styles.tempBadgeRow}>
-                {/* Time remaining — left */}
-                <View style={styles.tempBadgeSide}>
-                  <Animated.Text style={[
-                    styles.tempSideValue,
-                    { color: phaseTextColor, opacity: blinkAnim },
-                    isOverdue && { color: '#FF4444', fontWeight: '800' },
-                    (currentEst === null && preAlertActive) && { color: '#FFB347', fontWeight: '800' },
-                  ]}>
-                    {timeRemainingDisplay}
-                  </Animated.Text>
-                  <Text style={[styles.tempSideLabel, { color: phaseTextColor }]}>remaining</Text>
-                </View>
+          <View style={styles.eventCard}>
 
-                {/* Temp — centre */}
-                <View style={styles.tempBadgeCenter}>
-                  <Text style={[styles.tempLabel, { color: phaseTextColor }]}>
-                    {currentEvent.trigger.source} ref
-                  </Text>
-                  <Text style={[styles.tempValue, { color: phaseTextColor }]}>
-                    {currentEvent.trigger.temperature}°{currentEvent.trigger.unit}
-                  </Text>
-                </View>
-
-                {/* Step counter — right */}
-                <View style={styles.tempBadgeSide}>
-                  <Text style={[styles.tempSideValue, { color: phaseTextColor }]}>
-                    {stepLabel}
-                  </Text>
-                  <Text style={[styles.tempSideLabel, { color: phaseTextColor }]}>
-                    {isInfoEvent ? 'note' : 'step'}
-                  </Text>
-                </View>
+            {/* Info strip: target · remaining · step */}
+            <View style={[styles.infoStrip, { backgroundColor: phaseColor }]}>
+              <View style={styles.infoStripItem}>
+                <Animated.Text style={[
+                  styles.infoStripValue,
+                  { color: phaseTextColor },
+                  isCriticalStep && { opacity: targetPulse },
+                ]}>
+                  {currentTargetTemp}°{currentTargetUnit}
+                </Animated.Text>
+                <Animated.Text style={[
+                  styles.infoStripLabel,
+                  { color: phaseTextColor },
+                  isCriticalStep && { opacity: targetPulse },
+                ]}>
+                  {currentEvent.trigger.source} trigger
+                </Animated.Text>
+              </View>
+              <View style={styles.infoStripItem}>
+                <Animated.Text style={[
+                  styles.infoStripValue,
+                  { color: phaseTextColor, opacity: isOverdue ? blinkAnim : 1 },
+                  isOverdue && { color: '#FF4444' },
+                ]}>
+                  {timeRemainingDisplay}
+                </Animated.Text>
+                <Text style={[styles.infoStripLabel, { color: phaseTextColor }]}>remaining</Text>
+              </View>
+              <View style={styles.infoStripItem}>
+                <Text style={[styles.infoStripValue, { color: phaseTextColor }]}>
+                  {stepLabel}
+                </Text>
+                <Text style={[styles.infoStripLabel, { color: phaseTextColor }]}>
+                  {isInfoEvent ? 'note' : 'step'}
+                </Text>
               </View>
             </View>
 
-            {/* Action checkboxes */}
+            {/* Action buttons */}
             {currentEvent.type === 'action' && (
               <View style={styles.actionList}>
                 <Text style={styles.sectionTitle}>Actions</Text>
                 {(currentEvent as ActionEvent).actions.map((action, i) => {
                   const done = completedActions[currentEvent.index]?.[i] ?? false;
+                  if (done) return null; // confirmed actions disappear
+                  // In live mode: locked until BT has risen to trigger (latched — stays unlocked)
+                  // Preheat (index 0) is always tappable — it's preparation, not temp-gated
+                  const isPreheat = engineState.currentEventIndex === 0;
+                  const canTap = !isLive || isPreheat || tempReachedLatched;
+                  // Overdue: BT rising, passed the target by 5°F+, user hasn't confirmed — blink
+                  const overdue = canTap && isLive && isRising && btLive !== null && currentTriggerTemp !== null && btLive >= currentTriggerTemp + 5;
                   return (
-                    <TouchableOpacity
-                      key={i}
-                      style={styles.actionRow}
-                      onPress={() => toggleAction(currentEvent.index, i)}
-                    >
-                      <View style={[styles.checkbox, done && { backgroundColor: phaseColor, borderColor: phaseColor }]}>
-                        {done && <Text style={styles.checkmark}>✓</Text>}
-                      </View>
-                      <Text style={[styles.actionText, done && styles.actionTextDone]}>
-                        {action}
-                      </Text>
-                    </TouchableOpacity>
+                    <Animated.View key={i} style={overdue ? { opacity: blinkAnim } : undefined}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          !canTap && styles.actionButtonLocked,
+                          canTap && !overdue && styles.actionButtonReady,
+                          overdue && styles.actionButtonOverdue,
+                        ]}
+                        onPress={() => {
+                          if (!canTap) return;
+                          toggleAction(currentEvent.index, i);
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          // Always advance when the last action for this step is confirmed
+                          const actions = (currentEvent as ActionEvent).actions;
+                          const allOthersDone = actions.every((_, j) =>
+                            j === i || (completedActions[currentEvent.index]?.[j] ?? false)
+                          );
+                          if (allOthersDone) {
+                            // Small delay to let toggleAction's set() flush
+                            setTimeout(() => advanceEvent(), 0);
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          styles.actionButtonText,
+                          !canTap && styles.actionButtonTextLocked,
+                        ]}>
+                          {action}
+                        </Text>
+                      </TouchableOpacity>
+                    </Animated.View>
                   );
                 })}
                 {(currentEvent as ActionEvent).notes?.map((note, i) => (
@@ -260,28 +552,40 @@ export default function RoastScreen({ navigation }: Props) {
           </View>
         )}
 
-        {/* Next button */}
-        {!isComplete && (
+        {/* Pending acknowledgments — blink reminder for actions the roaster hasn't confirmed */}
+        {pendingAcks.length > 0 && selectedProfile && (
+          <Animated.View style={[styles.pendingCard, { opacity: blinkAnim }]}>
+            <Text style={styles.pendingTitle}>Confirm previous actions:</Text>
+            {pendingAcks.map(evIdx => {
+              const ev = selectedProfile.events.find(e => e.index === evIdx);
+              if (!ev || ev.type !== 'action') return null;
+              return (ev as ActionEvent).actions.map((action, i) => {
+                const done = completedActions[evIdx]?.[i] ?? false;
+                if (done) return null;
+                return (
+                  <TouchableOpacity
+                    key={`${evIdx}-${i}`}
+                    style={[styles.actionButton, styles.actionButtonOverdue]}
+                    onPress={() => {
+                      toggleAction(evIdx, i);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }}
+                  >
+                    <Text style={styles.actionButtonText}>{action}</Text>
+                  </TouchableOpacity>
+                );
+              });
+            })}
+          </Animated.View>
+        )}
+
+        {/* Next button — info events only (action steps use action buttons) */}
+        {!isComplete && currentEvent?.type === 'info' && (
           <TouchableOpacity
-            style={[
-              styles.nextButton,
-              !canAdvance && !preAlertActive && styles.nextButtonDisabled,
-              preAlertActive && styles.nextButtonAlert,
-            ]}
+            style={styles.nextButton}
             onPress={advanceEvent}
-            disabled={!canAdvance}
           >
-            <Text style={[
-              styles.nextButtonText,
-              !canAdvance && !preAlertActive && styles.nextButtonTextDisabled,
-              preAlertActive && styles.nextButtonTextAlert,
-            ]}>
-              {preAlertActive && secondsUntilNext !== null
-                ? `⏱ Engage in ~${secondsUntilNext}s${canAdvance ? ' — Next →' : ''}`
-                : !canAdvance
-                  ? 'Check all actions to continue'
-                  : 'Next →'}
-            </Text>
+            <Text style={styles.nextButtonText}>Next →</Text>
           </TouchableOpacity>
         )}
 
@@ -297,67 +601,206 @@ export default function RoastScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#111' },
 
-  phaseBar: {
+  /* ─── Top header ─── */
+  topHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 8,
   },
-  phaseLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
-  timerGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  currentEstDisplay: { fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  timerDisplay: { fontSize: 14, fontWeight: '600', opacity: 0.85, fontVariant: ['tabular-nums'] },
-  profileName: { fontSize: 13, fontWeight: '600', opacity: 0.8 },
+  topHeaderPhase: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    width: 90,
+  },
+  topHeaderProfile: {
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.8,
+    textAlign: 'right',
+    width: 90,
+  },
+  modeIndicatorLive: {
+    color: '#2ECC71',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  modeIndicatorManual: {
+    color: '#E67E22',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
 
-  scroll: { padding: 20, gap: 16 },
-
-  eventCard: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  eventCardMain: {
-    minHeight: '48%',
-  },
-  tempBadge: {
-    paddingVertical: 36,
-    paddingHorizontal: 11,
-  },
-  tempBadgeRow: {
+  /* ─── Live bar ─── */
+  liveBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    backgroundColor: '#1A1A1A',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#474747',
   },
-  tempBadgeSide: {
-    width: 72,
+  liveBarSide: {
+    width: 80,
     alignItems: 'center',
   },
-  tempBadgeCenter: {
-    alignItems: 'center',
+  liveBarCenter: {
     flex: 1,
+    alignItems: 'center',
   },
-  tempSideValue: { fontSize: 17, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  tempSideLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, opacity: 0.7, marginTop: 2 },
-  tempLabel: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.8 },
-  tempValue: { fontSize: 52, fontWeight: '800', marginTop: 4 },
+  liveBarValue: {
+    color: '#CCC',
+    fontSize: 21,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  liveBarLabel: {
+    color: '#666',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
+  liveBarEta: {
+    color: '#888',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+    fontVariant: ['tabular-nums'],
+  },
+  liveBarBT: {
+    color: '#FFF',
+    fontSize: 42,
+    fontFamily: 'DSEG7',
+  },
+  liveBarBTUnit: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '400',
+    marginLeft: 2,
+  },
+  liveBarBTApproaching: {
+    color: '#FFB347',
+  },
+  liveBarRoR: {
+    color: '#888',
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  liveBarRefLabel: {
+    color: '#666',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 2,
+  },
 
-  actionList: { padding: 24, gap: 18 },
+  /* ─── Scrollable content ─── */
+  scroll: { padding: 16, gap: 14 },
+
+  eventCard: {
+    backgroundColor: '#222222',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+
+  /* Info strip inside event card */
+  infoStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 19,
+    paddingHorizontal: 12,
+  },
+  infoStripItem: {
+    alignItems: 'center',
+  },
+  infoStripValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
+  },
+  infoStripLabel: {
+    fontSize: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    opacity: 0.7,
+    marginTop: 2,
+  },
+
+  actionList: { padding: 20, gap: 16 },
   sectionTitle: { color: '#888', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 },
 
-  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  checkbox: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  /* Action buttons — replace checkboxes */
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: '#444',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#1A1A1A',
+    gap: 12,
   },
-  checkmark: { color: '#FFF', fontSize: 17, fontWeight: '700' },
-  actionText: { color: '#FFF', fontSize: 19, flex: 1 },
-  actionTextDone: { color: '#555', textDecorationLine: 'line-through' },
+  actionButtonLocked: {
+    borderColor: '#E67E22',
+    backgroundColor: '#1A1400',
+    opacity: 0.6,
+  },
+  actionButtonReady: {
+    borderColor: '#5B9A6A',
+    backgroundColor: '#0F1A12',
+  },
+  actionButtonDone: {
+    borderColor: '#2A2A2A',
+    backgroundColor: '#1A1A1A',
+  },
+  actionButtonOverdue: {
+    borderColor: '#E74C3C',
+    backgroundColor: '#1F0A0A',
+  },
+  actionButtonCheckmark: {
+    color: '#5B9A6A',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  actionButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
+  },
+  actionButtonTextLocked: {
+    color: '#888',
+  },
+  actionButtonTextDone: {
+    color: '#555',
+    textDecorationLine: 'line-through',
+  },
+
+  /* Pending acks card */
+  pendingCard: {
+    backgroundColor: '#1F0A0A',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E74C3C',
+    gap: 10,
+  },
+  pendingTitle: {
+    color: '#E74C3C',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   noteText: { color: '#888', fontSize: 13, fontStyle: 'italic' },
   infoText: { color: '#FFF', fontSize: 16, lineHeight: 24 },
 
@@ -423,4 +866,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   exitButtonText: { color: '#555', fontSize: 15 },
+
+  rorRising: { color: '#FF6B6B' },
+  rorDropping: { color: '#4DA6FF' },
 });
