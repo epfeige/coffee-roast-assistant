@@ -38,9 +38,11 @@ export function createInitialEngineState(profile: RoastProfile): EngineState {
  * Evaluates the current temperature against the profile and advances
  * one step if BT has reached the next event's threshold.
  *
- * NOTE: This function is currently unused. In the Phase 3 UX, event
- * advancement is entirely user-driven (action buttons in RoastScreen).
- * Kept for potential future semi-automated mode.
+ * NOTE: This function is currently UNUSED. All event advancement is
+ * manual — the user taps the advance button, which calls
+ * `advanceToNextEvent`. This auto-advance path is preserved for a
+ * potential future Phase 3 auto-advance mode where the engine could
+ * automatically progress steps when BT crosses thresholds.
  */
 export function evaluateTemperature(
   profile: RoastProfile,
@@ -127,9 +129,10 @@ export function evaluatePreAlert(
 }
 
 /**
- * MVP 1: Manually advance to the next event in sequence.
- * Temperature-driven advancement is preserved in evaluateTemperature
- * for use in Phase 2/3 — this is the manual override for Phase 1.
+ * Manually advance to the next event in sequence.
+ * This is the active advancement path used by RoastScreen.
+ * Temperature-driven advancement (evaluateTemperature) is preserved
+ * but currently unused — see its docstring for details.
  */
 export function advanceToNextEvent(
   state: EngineState,

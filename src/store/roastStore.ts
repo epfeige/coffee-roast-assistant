@@ -63,6 +63,7 @@ interface RoastStore {
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
 let bridgeDebounce: ReturnType<typeof setTimeout> | null = null;
+let devBridgeDebounce: ReturnType<typeof setTimeout> | null = null;
 
 function clearTimer() {
   if (timerInterval !== null) {
@@ -141,8 +142,8 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
   },
   setDevBridgeIp: (ip) => {
     set({ devBridgeIp: ip });
-    if (bridgeDebounce) clearTimeout(bridgeDebounce);
-    bridgeDebounce = setTimeout(() => {
+    if (devBridgeDebounce) clearTimeout(devBridgeDebounce);
+    devBridgeDebounce = setTimeout(() => {
       AsyncStorage.setItem(DEV_BRIDGE_IP_STORAGE_KEY, ip);
       if (get().useDevBridge) connectActiveIp(get());
     }, 800);

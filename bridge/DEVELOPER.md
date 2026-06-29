@@ -62,7 +62,7 @@ yet enough data to compute it. The relay never crashes on a bad field.
 |----------|---------|---------|
 | `BRIDGE_HOST` | `0.0.0.0` | Bind address |
 | `BRIDGE_PORT` | `8765` | Port |
-| `BRIDGE_TOKEN` | _(unset)_ | If set, clients must connect with `?token=...` |
+| `BRIDGE_TOKEN` | _(unset)_ | If set, clients must connect with `?token=...` (Note: Token authentication is not yet supported in the iPhone app. This is planned for a future update.) |
 | `BRIDGE_ROR_WINDOW` | `15` | RoR window in seconds |
 | `BRIDGE_LOG_FILE` | _(unset)_ | If set, also append logs to this file |
 

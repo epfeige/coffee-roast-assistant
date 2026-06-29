@@ -25,6 +25,8 @@ export default function App() {
   const loadSettings = useRoastStore(s => s.loadSettings);
   useEffect(() => { loadSettings(); }, []);
 
+  if (!fontsLoaded) return null;
+
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <NavigationContainer>

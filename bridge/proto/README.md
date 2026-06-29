@@ -18,8 +18,8 @@ The bridge itself is Python and needs the `websockets` library:
 python3 -m venv .venv && .venv/bin/pip install websockets
 ```
 
-`run-tests.js` defaults to `bridge/.venv/bin/python3` (relative to the repo).
-Override with `BRIDGE_PYTHON=/path/to/python node run-tests.js` if your venv lives elsewhere.
+`run-tests.js` defaults to `python3` (i.e. whatever is on your `PATH`).
+Override with `BRIDGE_PYTHON=/path/to/python node run-tests.js` if you need a specific interpreter (e.g. a venv).
 
 ## Files
 

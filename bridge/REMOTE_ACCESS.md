@@ -40,11 +40,15 @@ export BRIDGE_TOKEN="a-long-random-secret"
 python bridge.py
 ```
 
-The app then connects with the token as a query parameter:
+The app would then connect with the token as a query parameter:
 
 ```
 wss://<public-host>/?token=a-long-random-secret
 ```
+
+> **Note:** Token authentication (`?token=`) and `wss://` are not yet supported
+> in the iPhone app. `ArtisanProvider` currently connects with plain `ws://`.
+> This is planned for a future update.
 
 The bridge rejects any connection whose token doesn't match (closes with code
 `4001`). Generate a strong value, e.g. `openssl rand -hex 24`.
@@ -159,6 +163,7 @@ tunnel — at which point Tailscale Funnel is usually simpler.
 - Remote but keep it fully private → **Tailscale Serve**.
 - One-off demo → **Cloudflare Tunnel**.
 - Always set `BRIDGE_TOKEN`; treat it as the only wall when the endpoint is public.
+  (Note: The iPhone app does not yet support `BRIDGE_TOKEN` or `wss://`. This is planned for a future update.)
 
 Sources: [Tailscale Funnel docs](https://tailscale.com/docs/features/tailscale-funnel),
 [`tailscale funnel` CLI](https://tailscale.com/docs/reference/tailscale-cli/funnel),
