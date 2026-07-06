@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef } from 'react';
@@ -13,7 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { Audio } from 'expo-av';
 import { useRoastStore } from '../store/roastStore';
 import { PHASE_COLORS, PHASE_TEXT_COLORS, PHASE_LABELS } from '../utils/phaseColors';
-import { ActionEvent, InfoEvent, RoastProfile } from '../types';
+import { ActionEvent, InfoEvent, RoastProfile, RoastSessionLog } from '../types';
 import { areActionsComplete, EngineState } from '../engine/roastEngine';
 import { formatTime } from '../utils/formatTime';
 import { RootStackParamList } from '../../App';
@@ -80,6 +81,10 @@ export default function RoastScreen({ navigation }: Props) {
   const tempAlertMinF   = useRoastStore(s => s.tempAlertMinF);
   const tempAlertMaxF   = useRoastStore(s => s.tempAlertMaxF);
   const tempAlertPct    = useRoastStore(s => s.tempAlertPct);
+  const isRecording    = useRoastStore(s => s.isRecording);
+  const setIsRecording = useRoastStore(s => s.setIsRecording);
+  const recordStep     = useRoastStore(s => s.recordStep);
+  const clearRecordedSteps = useRoastStore(s => s.clearRecordedSteps);
   const isLive = btLive !== null && wsStatus === 'connected';
   const activeIp = useDevBridge ? devBridgeIp : bridgeIp;
   const showManualWarning = activeIp.trim() !== '' && wsStatus !== 'connected' && wsStatus !== 'connecting';
@@ -118,6 +123,40 @@ export default function RoastScreen({ navigation }: Props) {
   if (seenBelowRef.current && isRising && btLive !== null && currentTriggerTemp !== null && btLive >= currentTriggerTemp - 2) {
     tempReachedRef.current = true;
   }
+  // Recording: capture actual time when BT first crosses trigger temp
+  const recordedForStepRef = useRef<Set<number>>(new Set());
+  if (engineState && engineState.currentEventIndex === 0) {
+    recordedForStepRef.current = new Set();
+  }
+  const currentEventIndex = engineState?.currentEventIndex ?? -1;
+  const currentEventType = engineState?.currentEvent?.type ?? null;
+  const currentEventPhase = engineState?.currentEvent?.phase ?? null;
+  const currentEventEstTime = engineState?.currentEvent?.estimated_time_seconds ?? null;
+  const currentEventTriggerTemp = engineState?.currentEvent?.trigger.temperature ?? null;
+  const currentEventIdx = engineState?.currentEvent?.index ?? -1;
+  useEffect(() => {
+    if (
+      !tempReachedRef.current ||
+      !isRecording ||
+      roastStartedAt === null ||
+      currentEventIdx < 0 ||
+      recordedForStepRef.current.has(currentEventIdx) ||
+      currentEventType !== 'action' ||
+      currentEventEstTime === null ||
+      currentEventPhase === 'preheat' ||
+      currentEventTriggerTemp === null
+    ) return;
+    recordedForStepRef.current.add(currentEventIdx);
+    recordStep({
+      eventIndex: currentEventIdx,
+      targetTemp: currentEventTriggerTemp,
+      targetTimeSec: currentEventEstTime,
+      actualTimeSec: elapsedSeconds,
+      deltaSec: elapsedSeconds - currentEventEstTime,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [btLive, currentEventIndex]);
+
   const tempReachedLatched = tempReachedRef.current;
   const { effectiveTarget, effectiveGap, effectiveTargetEst } = (() => {
     if (!isLive || btLive === null || !isRising) return { effectiveTarget: null, effectiveGap: null, effectiveTargetEst: null };
@@ -290,6 +329,69 @@ export default function RoastScreen({ navigation }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [criticalAlert, isChargeNext]);
 
+  // POST session log (called on roast complete or early exit)
+  const postFiredRef = useRef(false);
+  if (engineState && engineState.currentEventIndex === 0) {
+    postFiredRef.current = false;
+  }
+  function postSessionLog() {
+    // Snapshot everything from store at call time to avoid stale closures
+    const state = useRoastStore.getState();
+    const steps = state.recordedSteps;
+    if (!state.isRecording || steps.length === 0 || postFiredRef.current) return;
+    postFiredRef.current = true;
+
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const source = state.useDevBridge ? 'Mock-data' : 'Live-data';
+
+    const session: RoastSessionLog = {
+      profileName: state.selectedProfile?.name ?? 'Unknown',
+      date,
+      time,
+      source,
+      steps,
+    };
+
+    const adminIp = state.adminServerIp.trim();
+    if (!adminIp) {
+      Alert.alert('Recording', 'No admin server IP configured in Settings — roast log not saved.');
+      return;
+    }
+
+    const url = adminIp.includes(':') ? `http://${adminIp}` : `http://${adminIp}:3001`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    fetch(`${url}/api/roast-logs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+      signal: controller.signal,
+    })
+      .then(res => {
+        clearTimeout(timeout);
+        if (res.ok) {
+          clearRecordedSteps();
+        } else {
+          Alert.alert('Recording', `Failed to save roast log (status ${res.status}).`);
+          postFiredRef.current = false; // allow retry
+        }
+      })
+      .catch(() => {
+        clearTimeout(timeout);
+        Alert.alert('Recording', 'Could not reach admin server — roast log not saved. Check that the server is running.');
+        postFiredRef.current = false; // allow retry
+      });
+  }
+
+  useEffect(() => {
+    if (engineState?.isComplete) postSessionLog();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engineState?.isComplete]);
+
   if (!engineState || !selectedProfile) return null;
 
   const { currentEvent, nextEvent, completedActions, isComplete } = engineState;
@@ -330,6 +432,7 @@ export default function RoastScreen({ navigation }: Props) {
   const displaySource = currentSource;
 
   function handleExit() {
+    postSessionLog();
     resetRoast();
     navigation.goBack();
   }
@@ -342,6 +445,12 @@ export default function RoastScreen({ navigation }: Props) {
         <Text style={[s.phaseLabel, { color: phaseTextColor }]}>
           {PHASE_LABELS[phase]}
         </Text>
+        <TouchableOpacity
+          onPress={() => setIsRecording(!isRecording)}
+          style={[s.recToggle, isRecording && s.recToggleActive]}
+        >
+          <Text style={[s.recText, isRecording && s.recTextActive]}>REC</Text>
+        </TouchableOpacity>
         {isLive ? (
           <Text style={s.modeLive}>LIVE</Text>
         ) : showManualWarning ? (
@@ -972,4 +1081,26 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   exitBtnText: { color: '#333', fontSize: 13 },
+
+  /* REC toggle */
+  recToggle: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  recToggleActive: {
+    borderColor: '#E74C3C',
+    backgroundColor: '#1F0A0A',
+  },
+  recText: {
+    color: '#555',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  recTextActive: {
+    color: '#E74C3C',
+  },
 });

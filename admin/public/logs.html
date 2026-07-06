@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E46 Roast — Roast Logs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a1a;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 11px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+
+    .nav-links { display: flex; gap: 16px; align-items: center; }
+    .nav-links a {
+      color: #888; font-size: 13px; text-decoration: none; font-weight: 600;
+    }
+    .nav-links a:hover { color: #e67e22; }
+    .nav-links a.active { color: #e67e22; }
+
+    .main { max-width: 1100px; margin: 0 auto; padding: 24px 32px; }
+
+    /* Filters */
+    .filters {
+      display: flex; gap: 12px; margin-bottom: 24px; align-items: center; flex-wrap: wrap;
+    }
+    .filter-label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    .filter-select {
+      background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px;
+      color: #fff; padding: 8px 12px; font-size: 13px; cursor: pointer;
+    }
+    .filter-select:focus { outline: none; border-color: #e67e22; }
+
+    /* Session cards */
+    .session-card {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .session-header {
+      padding: 14px 20px; display: flex; align-items: center; gap: 16px;
+      cursor: pointer; user-select: none;
+    }
+    .session-header:hover { background: #1e1e1e; }
+    .session-profile {
+      font-size: 16px; font-weight: 700; color: #fff; min-width: 120px;
+    }
+    .session-date { font-size: 13px; color: #888; font-variant-numeric: tabular-nums; }
+    .session-time { font-size: 13px; color: #666; font-variant-numeric: tabular-nums; }
+    .session-source {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.8px;
+      padding: 3px 10px; border-radius: 10px;
+    }
+    .source-live { background: #0F1A12; color: #2ECC71; border: 1px solid #2ECC71; }
+    .source-mock { background: #1A1400; color: #E67E22; border: 1px solid #E67E22; }
+    .session-steps-count {
+      font-size: 12px; color: #555; margin-left: auto;
+    }
+    .session-avg-delta {
+      font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+      padding: 3px 10px; border-radius: 6px; min-width: 70px; text-align: center;
+    }
+    .delta-negative { color: #E74C3C; background: #1F0A0A; }
+    .delta-positive { color: #2ECC71; background: #0F1A12; }
+    .delta-neutral { color: #888; background: #1e1e1e; }
+
+    /* Step table */
+    .session-body { display: none; border-top: 1px solid #222; }
+    .session-body.open { display: block; }
+
+    .steps-table { width: 100%; border-collapse: collapse; }
+    .steps-table th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: #555; padding: 10px 16px; text-align: left;
+      border-bottom: 1px solid #222;
+    }
+    .steps-table td {
+      padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #1a1a1a;
+      font-variant-numeric: tabular-nums;
+    }
+    .steps-table tr:last-child td { border-bottom: none; }
+    .steps-table .col-index { color: #555; width: 60px; }
+    .steps-table .col-temp { color: #ccc; }
+    .steps-table .col-target-time { color: #888; }
+    .steps-table .col-actual-time { color: #fff; font-weight: 600; }
+    .steps-table .col-delta { font-weight: 700; }
+    .steps-table .col-actions { color: #888; font-size: 13px; }
+    .steps-table .col-delta.negative { color: #E74C3C; }
+    .steps-table .col-delta.positive { color: #2ECC71; }
+    .steps-table .col-delta.on-time { color: #888; }
+
+    /* Stats summary */
+    .stats-bar {
+      background: #161616; border: 1px solid #2a2a2a; border-radius: 12px;
+      padding: 20px 24px; margin-bottom: 24px;
+      display: flex; gap: 32px; flex-wrap: wrap;
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #555; }
+    .stat-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 300px; color: #444; gap: 12px;
+    }
+    .empty-state h2 { font-size: 20px; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>E46 Roast — Roast Logs</h1>
+  <img src="E46-logo-gray.png" alt="E46 Logo" style="height:84px;width:84px;object-fit:contain;" />
+  <div class="nav-links">
+    <a href="/">Profile Admin</a>
+    <a href="/logs.html" class="active">Roast Logs</a>
+  </div>
+</header>
+
+<div class="main">
+  <div class="filters" id="filters"></div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div id="logList"></div>
+</div>
+
+<script>
+let logs = [];
+let profiles = [];
+let filterProfile = 'all';
+let filterSource = 'all';
+
+function formatTime(sec) {
+  const m = Math.floor(Math.abs(sec) / 60);
+  const s = Math.abs(sec) % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function formatDelta(sec) {
+  if (sec === 0) return '0s';
+  const sign = sec > 0 ? '+' : '-';
+  const abs = Math.abs(sec);
+  if (abs < 60) return `${sign}${abs}s`;
+  return `${sign}${formatTime(abs)}`;
+}
+
+function deltaClass(sec) {
+  if (sec < -3) return 'negative';
+  if (sec > 3) return 'positive';
+  return 'on-time';
+}
+
+function lookupActions(profileName, eventIndex) {
+  const profile = profiles.find(p => p.name === profileName);
+  if (!profile) return '';
+  const ev = profile.events.find(e => e.index === eventIndex);
+  if (!ev || ev.type !== 'action') return '';
+  return ev.actions.join(' · ');
+}
+
+async function loadLogs() {
+  const [logsRes, profilesRes] = await Promise.all([
+    fetch('/api/roast-logs'),
+    fetch('/api/profiles'),
+  ]);
+  logs = await logsRes.json();
+  const profileData = await profilesRes.json();
+  profiles = profileData.profiles || [];
+  renderFilters();
+  renderAll();
+}
+
+function getFilteredLogs() {
+  return logs.filter(l => {
+    if (filterProfile !== 'all' && l.profileName !== filterProfile) return false;
+    if (filterSource !== 'all' && l.source !== filterSource) return false;
+    return true;
+  });
+}
+
+function renderFilters() {
+  const profiles = [...new Set(logs.map(l => l.profileName))].sort();
+  const sources = [...new Set(logs.map(l => l.source))].sort();
+
+  document.getElementById('filters').innerHTML = `
+    <span class="filter-label">Profile</span>
+    <select class="filter-select" onchange="filterProfile=this.value;renderAll()">
+      <option value="all">All profiles</option>
+      ${profiles.map(p => `<option value="${p}" ${filterProfile===p?'selected':''}>${p}</option>`).join('')}
+    </select>
+    <span class="filter-label" style="margin-left:8px">Source</span>
+    <select class="filter-select" onchange="filterSource=this.value;renderAll()">
+      <option value="all">All sources</option>
+      ${sources.map(s => `<option value="${s}" ${filterSource===s?'selected':''}>${s}</option>`).join('')}
+    </select>
+  `;
+}
+
+function renderAll() {
+  const filtered = getFilteredLogs();
+  renderStats(filtered);
+  renderLogs(filtered);
+}
+
+function renderStats(filtered) {
+  const bar = document.getElementById('statsBar');
+  if (filtered.length === 0) {
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+
+  const allDeltas = filtered.flatMap(l => l.steps.map(s => s.deltaSec));
+  const avgDelta = allDeltas.length > 0 ? Math.round(allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length) : 0;
+  const minDelta = allDeltas.length > 0 ? Math.min(...allDeltas) : 0;
+  const maxDelta = allDeltas.length > 0 ? Math.max(...allDeltas) : 0;
+  const totalSteps = allDeltas.length;
+
+  const avgColor = deltaClass(avgDelta) === 'negative' ? '#E74C3C' : deltaClass(avgDelta) === 'positive' ? '#2ECC71' : '#888';
+
+  bar.innerHTML = `
+    <div class="stat-item">
+      <span class="stat-label">Sessions</span>
+      <span class="stat-value" style="color:#fff">${filtered.length}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Total steps</span>
+      <span class="stat-value" style="color:#ccc">${totalSteps}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Avg delta</span>
+      <span class="stat-value" style="color:${avgColor}">${formatDelta(avgDelta)}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Earliest</span>
+      <span class="stat-value" style="color:#E74C3C">${formatDelta(minDelta)}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Latest</span>
+      <span class="stat-value" style="color:#2ECC71">${formatDelta(maxDelta)}</span>
+    </div>
+  `;
+}
+
+function renderLogs(filtered) {
+  const container = document.getElementById('logList');
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h2>No roast logs yet</h2>
+        <p>Complete a roast with REC enabled to see data here.</p>
+      </div>`;
+    return;
+  }
+
+  // Show newest first
+  const sorted = [...filtered].reverse();
+
+  container.innerHTML = sorted.map((session, i) => {
+    const idx = filtered.length - 1 - i;
+    const allDeltas = session.steps.map(s => s.deltaSec);
+    const avgDelta = allDeltas.length > 0 ? Math.round(allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length) : 0;
+    const sourceClass = session.source === 'Live-data' ? 'source-live' : 'source-mock';
+    const avgClass = deltaClass(avgDelta) === 'negative' ? 'delta-negative' : deltaClass(avgDelta) === 'positive' ? 'delta-positive' : 'delta-neutral';
+
+    return `
+      <div class="session-card">
+        <div class="session-header" onclick="toggleSession(${idx})">
+          <span class="session-profile">${session.profileName}</span>
+          <span class="session-date">${session.date}</span>
+          <span class="session-time">${session.time}</span>
+          <span class="session-source ${sourceClass}">${session.source}</span>
+          <span class="session-steps-count">${session.steps.length} steps</span>
+          <span class="session-avg-delta ${avgClass}">avg ${formatDelta(avgDelta)}</span>
+        </div>
+        <div class="session-body" id="sessionBody-${idx}">
+          <table class="steps-table">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>Actions</th>
+                <th>Target Temp</th>
+                <th>Target Time</th>
+                <th>Actual Time</th>
+                <th>Delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${session.steps.map(step => `
+                <tr>
+                  <td class="col-index">#${step.eventIndex}</td>
+                  <td class="col-actions">${lookupActions(session.profileName, step.eventIndex)}</td>
+                  <td class="col-temp">${step.targetTemp}°F</td>
+                  <td class="col-target-time">${formatTime(step.targetTimeSec)}</td>
+                  <td class="col-actual-time">${formatTime(step.actualTimeSec)}</td>
+                  <td class="col-delta ${deltaClass(step.deltaSec)}">${formatDelta(step.deltaSec)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleSession(idx) {
+  const body = document.getElementById(`sessionBody-${idx}`);
+  if (body) body.classList.toggle('open');
+}
+
+loadLogs();
+</script>
+</body>
+</html>

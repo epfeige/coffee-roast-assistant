@@ -45,6 +45,8 @@ export default function SettingsScreen({ navigation }: Props) {
   const setTempAlertMaxF = useRoastStore(s => s.setTempAlertMaxF);
   const tempAlertPct = useRoastStore(s => s.tempAlertPct);
   const setTempAlertPct = useRoastStore(s => s.setTempAlertPct);
+  const adminServerIp = useRoastStore(s => s.adminServerIp);
+  const setAdminServerIp = useRoastStore(s => s.setAdminServerIp);
 
   async function previewSound(key: AlertSoundKey) {
     const option = SOUND_OPTIONS.find(o => o.key === key);
@@ -198,6 +200,20 @@ export default function SettingsScreen({ navigation }: Props) {
           value={devBridgeIp}
           onChangeText={setDevBridgeIp}
           placeholder="192.168.1.10:8080"
+          placeholderTextColor="#444"
+          keyboardType="url"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {/* Admin Server (Roast Log Recording) */}
+        <Text style={[styles.sectionLabel, { marginTop: 32 }]}>ROAST LOG SERVER</Text>
+        <Text style={styles.sectionHint}>IP of the machine running the admin server (for saving roast logs)</Text>
+        <TextInput
+          style={[styles.bridgeInput, adminServerIp.trim() !== '' && styles.bridgeInputActive]}
+          value={adminServerIp}
+          onChangeText={setAdminServerIp}
+          placeholder="192.168.1.10:3001"
           placeholderTextColor="#444"
           keyboardType="url"
           autoCapitalize="none"

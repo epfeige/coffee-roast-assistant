@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RoastProfile } from '../types';
+import { RoastProfile, RoastStepLog } from '../types';
 import {
   EngineState,
   createInitialEngineState,
@@ -18,6 +18,8 @@ const USE_DEV_BRIDGE_KEY = '@use_dev_bridge';
 const TEMP_ALERT_MIN_F_KEY = '@temp_alert_min_f';
 const TEMP_ALERT_MAX_F_KEY = '@temp_alert_max_f';
 const TEMP_ALERT_PCT_KEY = '@temp_alert_pct';
+const IS_RECORDING_KEY = '@is_recording';
+const ADMIN_SERVER_IP_KEY = '@admin_server_ip';
 
 interface RoastStore {
   selectedProfile: RoastProfile | null;
@@ -53,6 +55,15 @@ interface RoastStore {
   btLive: number | null;
   etLive: number | null;
   rorLive: number | null;
+
+  // Recording
+  isRecording: boolean;
+  setIsRecording: (val: boolean) => void;
+  adminServerIp: string;
+  setAdminServerIp: (ip: string) => void;
+  recordedSteps: RoastStepLog[];
+  recordStep: (step: RoastStepLog) => void;
+  clearRecordedSteps: () => void;
 
   selectProfile: (profile: RoastProfile) => void;
   startRoast: () => void;
@@ -157,8 +168,28 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
   btLive: null,
   etLive: null,
   rorLive: null,
+
+  // Recording
+  isRecording: false,
+  setIsRecording: (val) => {
+    set({ isRecording: val });
+    AsyncStorage.setItem(IS_RECORDING_KEY, val ? '1' : '0');
+  },
+  adminServerIp: '',
+  setAdminServerIp: (ip) => {
+    set({ adminServerIp: ip });
+    AsyncStorage.setItem(ADMIN_SERVER_IP_KEY, ip);
+  },
+  recordedSteps: [],
+  recordStep: (step) => {
+    set((s) => ({ recordedSteps: [...s.recordedSteps, step] }));
+  },
+  clearRecordedSteps: () => {
+    set({ recordedSteps: [] });
+  },
+
   loadSettings: async () => {
-    const [thresholdVal, bridgeIpVal, devBridgeIpVal, useDevVal, minFVal, maxFVal, pctVal] = await Promise.all([
+    const [thresholdVal, bridgeIpVal, devBridgeIpVal, useDevVal, minFVal, maxFVal, pctVal, recordingVal, adminIpVal] = await Promise.all([
       AsyncStorage.getItem(THRESHOLD_STORAGE_KEY),
       AsyncStorage.getItem(BRIDGE_IP_STORAGE_KEY),
       AsyncStorage.getItem(DEV_BRIDGE_IP_STORAGE_KEY),
@@ -166,6 +197,8 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
       AsyncStorage.getItem(TEMP_ALERT_MIN_F_KEY),
       AsyncStorage.getItem(TEMP_ALERT_MAX_F_KEY),
       AsyncStorage.getItem(TEMP_ALERT_PCT_KEY),
+      AsyncStorage.getItem(IS_RECORDING_KEY),
+      AsyncStorage.getItem(ADMIN_SERVER_IP_KEY),
     ]);
     if (thresholdVal !== null) {
       const parsed = parseInt(thresholdVal, 10);
@@ -183,6 +216,8 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
       const parsed = parseInt(pctVal, 10);
       if (!isNaN(parsed)) set({ tempAlertPct: parsed });
     }
+    if (recordingVal !== null) set({ isRecording: recordingVal === '1' });
+    if (adminIpVal !== null) set({ adminServerIp: adminIpVal });
     const useDev = useDevVal === '1';
     if (bridgeIpVal !== null) set({ bridgeIp: bridgeIpVal });
     if (devBridgeIpVal !== null) set({ devBridgeIp: devBridgeIpVal });
@@ -192,7 +227,7 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
 
   selectProfile: (profile) => {
     clearTimer();
-    set({ selectedProfile: profile, engineState: null, roastStartedAt: null, elapsedSeconds: 0, preAlertActive: false, secondsUntilNext: null });
+    set({ selectedProfile: profile, engineState: null, roastStartedAt: null, elapsedSeconds: 0, preAlertActive: false, secondsUntilNext: null, recordedSteps: [] });
   },
 
   startRoast: () => {
@@ -260,6 +295,6 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
 
   resetRoast: () => {
     clearTimer();
-    set({ selectedProfile: null, engineState: null, roastStartedAt: null, elapsedSeconds: 0, preAlertActive: false, secondsUntilNext: null, btLive: null, etLive: null, rorLive: null });
+    set({ selectedProfile: null, engineState: null, roastStartedAt: null, elapsedSeconds: 0, preAlertActive: false, secondsUntilNext: null, btLive: null, etLive: null, rorLive: null, recordedSteps: [] });
   },
 }));

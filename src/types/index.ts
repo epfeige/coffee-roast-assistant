@@ -62,3 +62,19 @@ export interface RoastState {
   isComplete: boolean;
   startedAt: number;
 }
+
+export interface RoastStepLog {
+  eventIndex: number;
+  targetTemp: number;
+  targetTimeSec: number;
+  actualTimeSec: number;
+  deltaSec: number;
+}
+
+export interface RoastSessionLog {
+  profileName: string;
+  date: string;       // "2026-07-04"
+  time: string;       // "14:30"
+  source: 'Live-data' | 'Mock-data';
+  steps: RoastStepLog[];
+}
