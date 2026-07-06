@@ -9,7 +9,7 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0f0f0f;
+      background: #403e3e;
       color: #e0e0e0;
       min-height: 100vh;
     }
@@ -111,6 +111,43 @@
     .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #555; }
     .stat-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
+    /* Per-step stats table — print-friendly style */
+    .step-stats {
+      background: #fff; border: 1px solid #ccc; border-radius: 4px;
+      margin-bottom: 28px; overflow: hidden;
+    }
+    .step-stats-title {
+      padding: 12px 20px; font-size: 12px; font-weight: 700; color: #111;
+      text-transform: uppercase; letter-spacing: 2px;
+      border-bottom: 2px solid #333;
+      background: #f5f5f5;
+      /* font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; */
+    }
+    .step-stats-table { width: 100%; border-collapse: collapse; }
+    .step-stats-table th {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #555; padding: 8px 16px; text-align: left;
+      border-bottom: 2px solid #999;
+      background: #f0f0f0;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      font-weight: 700;
+    }
+    .step-stats-table td {
+      padding: 8px 16px; font-size: 13px; border-bottom: 1px solid #ddd;
+      font-variant-numeric: tabular-nums;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+      color: #222;
+    }
+    .step-stats-table tr:hover { background: #f8f8f8; }
+    .step-stats-table tr:last-child td { border-bottom: none; }
+    .step-stats-table .col-n { color: #888; font-size: 12px; }
+    .step-stats-table .col-std { color: #555; }
+    .step-stats-table .col-actions { color: #666; font-size: 12px; }
+    .step-stats-table .col-range { color: #777; font-size: 12px; }
+    .step-stats-table .col-delta.negative { color: #c0392b; }
+    .step-stats-table .col-delta.positive { color: #27ae60; }
+    .step-stats-table .col-delta.on-time { color: #555; }
+
     .empty-state {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       height: 300px; color: #444; gap: 12px;
@@ -133,6 +170,7 @@
 <div class="main">
   <div class="filters" id="filters"></div>
   <div class="stats-bar" id="statsBar"></div>
+  <div id="stepStats"></div>
   <div id="logList"></div>
 </div>
 
@@ -211,7 +249,84 @@ function renderFilters() {
 function renderAll() {
   const filtered = getFilteredLogs();
   renderStats(filtered);
+  renderStepStats(filtered);
   renderLogs(filtered);
+}
+
+function stdDev(arr) {
+  if (arr.length < 2) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const variance = arr.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (arr.length - 1);
+  return Math.round(Math.sqrt(variance) * 10) / 10;
+}
+
+function renderStepStats(filtered) {
+  const container = document.getElementById('stepStats');
+
+  // Only show when a single profile is filtered (steps don't align across profiles)
+  const profileNames = [...new Set(filtered.map(l => l.profileName))];
+  if (profileNames.length !== 1 || filtered.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const profileName = profileNames[0];
+
+  // Group deltas by eventIndex
+  const stepMap = {};
+  filtered.forEach(session => {
+    session.steps.forEach(step => {
+      if (!stepMap[step.eventIndex]) {
+        stepMap[step.eventIndex] = { targetTemp: step.targetTemp, targetTimeSec: step.targetTimeSec, deltas: [] };
+      }
+      stepMap[step.eventIndex].deltas.push(step.deltaSec);
+    });
+  });
+
+  const stepIndexes = Object.keys(stepMap).map(Number).sort((a, b) => a - b);
+
+  container.innerHTML = `
+    <div class="step-stats">
+      <div class="step-stats-title">Per-step analysis — ${profileName} (${filtered.length} sessions)</div>
+      <table class="step-stats-table">
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>Actions</th>
+            <th>Target</th>
+            <th>Target Time</th>
+            <th>Mean delta</th>
+            <th>Std dev</th>
+            <th>Range</th>
+            <th>n</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${stepIndexes.map(idx => {
+            const s = stepMap[idx];
+            const mean = Math.round(s.deltas.reduce((a, b) => a + b, 0) / s.deltas.length);
+            const sd = stdDev(s.deltas);
+            const min = Math.min(...s.deltas);
+            const max = Math.max(...s.deltas);
+            const meanClass = deltaClass(mean);
+            const actions = lookupActions(profileName, idx);
+            return `
+              <tr>
+                <td class="col-index">#${idx}</td>
+                <td class="col-actions">${actions}</td>
+                <td>${s.targetTemp}°F</td>
+                <td style="color:#5A7A9A">${formatTime(s.targetTimeSec)}</td>
+                <td class="col-delta ${meanClass}" style="font-weight:700">${formatDelta(mean)}</td>
+                <td class="col-std">\u03C3 ${sd.toFixed(1)}s</td>
+                <td class="col-range">${formatDelta(min)} \u2026 ${formatDelta(max)}</td>
+                <td class="col-n">${s.deltas.length}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderStats(filtered) {
