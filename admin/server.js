@@ -68,6 +68,25 @@ app.post('/api/roast-logs', (req, res) => {
   res.json({ ok: true, count: logs.length });
 });
 
+// DELETE a roast session log by index
+app.delete('/api/roast-logs/:index', (req, res) => {
+  const idx = parseInt(req.params.index, 10);
+  let logs = [];
+  try {
+    if (fs.existsSync(LOGS_FILE)) {
+      logs = JSON.parse(fs.readFileSync(LOGS_FILE, 'utf8'));
+    }
+  } catch {
+    logs = [];
+  }
+  if (idx < 0 || idx >= logs.length) {
+    return res.status(404).json({ error: 'Index out of range' });
+  }
+  logs.splice(idx, 1);
+  fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
+  res.json({ ok: true, count: logs.length });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✅ Roast Profile Admin running at http://0.0.0.0:${PORT}\n`);
 });

@@ -65,6 +65,11 @@
     }
     .source-live { background: #0F1A12; color: #2ECC71; border: 1px solid #2ECC71; }
     .source-mock { background: #1A1400; color: #E67E22; border: 1px solid #E67E22; }
+    .session-delete {
+      background: none; border: none; color: #444; cursor: pointer;
+      font-size: 16px; padding: 4px 8px;
+    }
+    .session-delete:hover { color: #E74C3C; }
     .session-steps-count {
       font-size: 12px; color: #555; margin-left: auto;
     }
@@ -179,6 +184,7 @@ let logs = [];
 let profiles = [];
 let filterProfile = 'all';
 let filterSource = 'all';
+let filterDate = 'all';
 
 function formatTime(sec) {
   const m = Math.floor(Math.abs(sec) / 60);
@@ -224,19 +230,26 @@ function getFilteredLogs() {
   return logs.filter(l => {
     if (filterProfile !== 'all' && l.profileName !== filterProfile) return false;
     if (filterSource !== 'all' && l.source !== filterSource) return false;
+    if (filterDate !== 'all' && l.date !== filterDate) return false;
     return true;
   });
 }
 
 function renderFilters() {
-  const profiles = [...new Set(logs.map(l => l.profileName))].sort();
+  const profileNames = [...new Set(logs.map(l => l.profileName))].sort();
   const sources = [...new Set(logs.map(l => l.source))].sort();
+  const dates = [...new Set(logs.map(l => l.date))].sort().reverse();
 
   document.getElementById('filters').innerHTML = `
     <span class="filter-label">Profile</span>
     <select class="filter-select" onchange="filterProfile=this.value;renderAll()">
       <option value="all">All profiles</option>
-      ${profiles.map(p => `<option value="${p}" ${filterProfile===p?'selected':''}>${p}</option>`).join('')}
+      ${profileNames.map(p => `<option value="${p}" ${filterProfile===p?'selected':''}>${p}</option>`).join('')}
+    </select>
+    <span class="filter-label" style="margin-left:8px">Date</span>
+    <select class="filter-select" onchange="filterDate=this.value;renderAll()">
+      <option value="all">All dates</option>
+      ${dates.map(d => `<option value="${d}" ${filterDate===d?'selected':''}>${d}</option>`).join('')}
     </select>
     <span class="filter-label" style="margin-left:8px">Source</span>
     <select class="filter-select" onchange="filterSource=this.value;renderAll()">
@@ -400,6 +413,7 @@ function renderLogs(filtered) {
           <span class="session-source ${sourceClass}">${session.source}</span>
           <span class="session-steps-count">${session.steps.length} steps</span>
           <span class="session-avg-delta ${avgClass}">avg ${formatDelta(avgDelta)}</span>
+          <button class="session-delete" onclick="event.stopPropagation();deleteSession(${idx})" title="Delete">✕</button>
         </div>
         <div class="session-body" id="sessionBody-${idx}">
           <table class="steps-table">
@@ -435,6 +449,18 @@ function renderLogs(filtered) {
 function toggleSession(idx) {
   const body = document.getElementById(`sessionBody-${idx}`);
   if (body) body.classList.toggle('open');
+}
+
+async function deleteSession(idx) {
+  const session = logs[idx];
+  if (!session) return;
+  if (!confirm(`Delete ${session.profileName} (${session.date} ${session.time})?`)) return;
+  const res = await fetch(`/api/roast-logs/${idx}`, { method: 'DELETE' });
+  if (res.ok) {
+    logs.splice(idx, 1);
+    renderFilters();
+    renderAll();
+  }
 }
 
 loadLogs();
