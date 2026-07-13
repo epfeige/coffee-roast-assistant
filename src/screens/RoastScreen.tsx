@@ -357,6 +357,7 @@ export default function RoastScreen({ navigation }: Props) {
     const adminIp = state.adminServerIp.trim();
     if (!adminIp) {
       Alert.alert('Recording', 'No admin server IP configured in Settings — roast log not saved.');
+      postFiredRef.current = false; // allow retry after configuring
       return;
     }
 

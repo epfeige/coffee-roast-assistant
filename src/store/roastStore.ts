@@ -95,7 +95,8 @@ function connectActiveIp(state: { useDevBridge: boolean; bridgeIp: string; devBr
 const artisanProvider = new ArtisanProvider(
   (status) => {
     useRoastStore.setState({ wsStatus: status });
-    if (status === 'disconnected' || status === 'error') {
+    // Only null values on explicit disconnect — stale timer handles reconnect gaps
+    if (status === 'disconnected') {
       useRoastStore.setState({ btLive: null, etLive: null, rorLive: null });
     }
   },
