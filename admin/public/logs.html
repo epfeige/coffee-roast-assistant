@@ -237,6 +237,84 @@
     .compare-stats-table .col-diff.better { color: #27ae60; }
     .compare-stats-table .col-diff.worse { color: #c0392b; }
     .compare-stats-table .col-diff.same { color: #888; }
+
+    /* Day context panel — subtle "external data" feel */
+    .day-context-panel {
+      margin-bottom: 20px;
+    }
+    .day-ctx {
+      background: #2a2825; border-left: 3px solid #5a5550; border-radius: 0 8px 8px 0;
+      margin-bottom: 8px; padding: 12px 18px;
+    }
+    .day-ctx-top {
+      display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+    }
+    .day-ctx-date {
+      font-size: 13px; font-weight: 700; color: #a09888;
+      font-variant-numeric: tabular-nums; min-width: 90px;
+    }
+    .day-ctx-sep {
+      width: 1px; height: 20px; background: #4a4540;
+    }
+    .day-ctx-field {
+      display: flex; align-items: center; gap: 5px;
+    }
+    .day-ctx-label {
+      font-size: 10px; color: #7a7060; text-transform: uppercase; letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+    .day-ctx-val {
+      font-size: 12px; color: #c0b8a8; font-variant-numeric: tabular-nums;
+    }
+    .day-ctx-val strong { color: #d8d0c0; }
+    .day-ctx-input {
+      background: #1e1c18; border: 1px solid #4a4540; border-radius: 5px;
+      color: #d8d0c0; font-size: 12px; padding: 3px 6px;
+      text-align: center; font-variant-numeric: tabular-nums;
+    }
+    .day-ctx-input:focus { outline: none; border-color: #8a7a60; }
+    .day-ctx-input::placeholder { color: #5a5040; }
+    .day-ctx-input.narrow { width: 52px; }
+    .day-ctx-input.medium { width: 68px; }
+    .day-ctx-unit { font-size: 11px; color: #6a6050; }
+    .day-ctx-fetch {
+      background: none; border: 1px solid #4a4540; border-radius: 6px;
+      color: #7a7060; font-size: 10px; padding: 2px 8px; cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+    .day-ctx-fetch:hover { border-color: #8a7a60; color: #b0a890; }
+    .day-ctx-bottom {
+      display: flex; align-items: center; gap: 6px; margin-top: 8px;
+    }
+    .day-ctx-notes {
+      background: #1e1c18; border: 1px solid #4a4540; border-radius: 5px;
+      color: #c0b8a8; font-size: 12px; padding: 5px 10px; flex: 1;
+      font-family: inherit; resize: none; min-height: 24px; max-height: 60px;
+    }
+    .day-ctx-notes:focus { outline: none; border-color: #8a7a60; }
+    .day-ctx-notes::placeholder { color: #5a5040; }
+
+    /* Session notes */
+    .session-notes-row {
+      padding: 8px 20px 12px; border-top: 1px solid #222;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .session-notes-label {
+      font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.8px;
+      white-space: nowrap;
+    }
+    .session-notes-input {
+      background: #111; border: 1px solid #2a2a2a; border-radius: 6px;
+      color: #ccc; font-size: 13px; padding: 5px 10px; flex: 1;
+      font-family: inherit;
+    }
+    .session-notes-input:focus { outline: none; border-color: #e67e22; }
+    .session-notes-input::placeholder { color: #333; }
+    .session-notes-saved {
+      font-size: 11px; color: #2ECC71; opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .session-notes-saved.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -252,6 +330,7 @@
 
 <div class="main">
   <div class="filters" id="filters"></div>
+  <div id="dayContext"></div>
   <div class="stats-bar" id="statsBar"></div>
   <div id="chartArea"></div>
   <div id="compareStats"></div>
@@ -262,6 +341,7 @@
 <script>
 let logs = [];
 let profiles = [];
+let dailyNotes = {}; // { "2026-07-13": { weather: {...}, notes: "...", drumPreheatMin: 20 } }
 let filterProfile = 'all';
 let filterSource = 'all';
 let filterDate = 'all';
@@ -332,13 +412,24 @@ const GROUP_B_COLOR = '#FF6B6B';
 const GROUP_B_BG = 'rgba(255,107,107,0.08)';
 
 async function loadLogs() {
-  const [logsRes, profilesRes] = await Promise.all([
+  const [logsRes, profilesRes, dailyRes] = await Promise.all([
     fetch('/api/roast-logs'),
     fetch('/api/profiles'),
+    fetch('/api/daily-notes'),
   ]);
   logs = await logsRes.json();
   const profileData = await profilesRes.json();
   profiles = profileData.profiles || [];
+  dailyNotes = await dailyRes.json();
+
+  // Auto-fetch weather for dates that don't have it yet
+  const dates = [...new Set(logs.map(l => l.date))];
+  for (const date of dates) {
+    if (!dailyNotes[date]?.weather) {
+      fetchWeather(date);
+    }
+  }
+
   renderFilters();
   renderAll();
 }
@@ -381,13 +472,161 @@ function renderFilters() {
   `;
 }
 
+async function fetchWeather(date) {
+  try {
+    const res = await fetch(`/api/weather/${date}`);
+    if (!res.ok) return;
+    const weather = await res.json();
+    if (!dailyNotes[date]) dailyNotes[date] = {};
+    dailyNotes[date].weather = weather;
+    renderAll();
+  } catch { /* silent */ }
+}
+
+async function saveDailyNotes(date) {
+  const entry = dailyNotes[date] || {};
+  await fetch(`/api/daily-notes/${date}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  });
+}
+
+function onDailyNotesChange(date, value) {
+  if (!dailyNotes[date]) dailyNotes[date] = {};
+  dailyNotes[date].notes = value;
+  clearTimeout(dailyNotes[date]._saveTimer);
+  dailyNotes[date]._saveTimer = setTimeout(() => saveDailyNotes(date), 800);
+}
+
+function onDrumPreheatChange(date, value) {
+  onDayFieldChange(date, 'drumPreheatMin', value);
+}
+
+function onDayFieldChange(date, field, value) {
+  if (!dailyNotes[date]) dailyNotes[date] = {};
+  const num = parseFloat(value);
+  dailyNotes[date][field] = isNaN(num) ? null : num;
+  clearTimeout(dailyNotes[date]._saveTimer);
+  dailyNotes[date]._saveTimer = setTimeout(() => saveDailyNotes(date), 800);
+}
+
+async function saveSessionNotes(origIdx, value) {
+  logs[origIdx].notes = value;
+  await fetch(`/api/roast-logs/${origIdx}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes: value }),
+  });
+  // Flash "saved" indicator
+  const el = document.getElementById(`sessionNotesSaved-${origIdx}`);
+  if (el) {
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1500);
+  }
+}
+
+function onSessionBatchChange(origIdx, value) {
+  const num = parseFloat(value);
+  const batchSizeLbs = isNaN(num) ? null : num;
+  logs[origIdx].batchSizeLbs = batchSizeLbs;
+  fetch(`/api/roast-logs/${origIdx}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ batchSizeLbs }),
+  });
+}
+
+let sessionNotesTimers = {};
+function onSessionNotesChange(origIdx, value) {
+  clearTimeout(sessionNotesTimers[origIdx]);
+  sessionNotesTimers[origIdx] = setTimeout(() => saveSessionNotes(origIdx, value), 800);
+}
+
 function renderAll() {
   const filtered = getFilteredLogs();
+  renderDayContext(filtered);
   renderStats(filtered);
   renderCharts(filtered);
   renderCompareStats(filtered);
   renderStepStats(filtered);
   renderLogs(filtered);
+}
+
+function getBatchSummary(allFiltered, date) {
+  const daySessions = allFiltered.filter(s => s.date === date);
+  const profileNames = [...new Set(daySessions.map(s => s.profileName))];
+  const parts = profileNames.map(name => {
+    const profile = profiles.find(p => p.name === name);
+    const lbs = profile?.batch_size_lbs;
+    const count = daySessions.filter(s => s.profileName === name).length;
+    return lbs ? `<strong>${count}\u00D7${lbs}</strong>` : `${count}\u00D7${name}`;
+  });
+  return parts.join(', ') + ' lbs';
+}
+
+function renderDayContext(filtered) {
+  const container = document.getElementById('dayContext');
+  if (filtered.length === 0) { container.innerHTML = ''; return; }
+
+  const dates = [...new Set(filtered.map(l => l.date))].sort().reverse();
+
+  container.innerHTML = `<div class="day-context-panel">${dates.map(date => {
+    const dn = dailyNotes[date] || {};
+    const w = dn.weather;
+    const weatherHtml = w
+      ? `<span class="day-ctx-val"><strong>${w.tempMinC ?? '?'}</strong>\u2013<strong>${w.tempMaxC ?? '?'}\u00B0C</strong></span>
+         <span class="day-ctx-sep"></span>
+         <span class="day-ctx-label">Humidity</span>
+         <span class="day-ctx-val"><strong>${w.humidityPct ?? '?'}%</strong></span>`
+      : `<span class="day-ctx-val" style="color:#5a5040">no weather</span>`;
+
+    return `
+      <div class="day-ctx">
+        <div class="day-ctx-top">
+          <span class="day-ctx-date">${date}</span>
+          <span class="day-ctx-sep"></span>
+          <span class="day-ctx-label">Outdoor</span>
+          ${weatherHtml}
+          <button class="day-ctx-fetch" onclick="fetchWeather('${date}')">\u21BB</button>
+          <span class="day-ctx-sep"></span>
+          <div class="day-ctx-field">
+            <span class="day-ctx-label">Drum preheat</span>
+            <input class="day-ctx-input narrow" type="number" min="0" max="120" placeholder="\u2014"
+              value="${dn.drumPreheatMin != null ? dn.drumPreheatMin : ''}"
+              onchange="onDrumPreheatChange('${date}', this.value)" />
+            <span class="day-ctx-unit">min</span>
+          </div>
+          <span class="day-ctx-sep"></span>
+          <div class="day-ctx-field">
+            <span class="day-ctx-label">Charge temp</span>
+            <input class="day-ctx-input narrow" type="number" min="0" max="600" placeholder="\u2014"
+              value="${dn.chargeTempF != null ? dn.chargeTempF : ''}"
+              onchange="onDayFieldChange('${date}', 'chargeTempF', this.value)" />
+            <span class="day-ctx-unit">\u00B0F</span>
+          </div>
+          <span class="day-ctx-sep"></span>
+          <div class="day-ctx-field">
+            <span class="day-ctx-label">Batch</span>
+            <span class="day-ctx-val">${getBatchSummary(filtered, date)}</span>
+          </div>
+          <span class="day-ctx-sep"></span>
+          <div class="day-ctx-field">
+            <span class="day-ctx-label">Green moisture</span>
+            <input class="day-ctx-input narrow" type="number" min="0" max="20" step="0.1" placeholder="\u2014"
+              value="${dn.greenMoisturePct != null ? dn.greenMoisturePct : ''}"
+              onchange="onDayFieldChange('${date}', 'greenMoisturePct', this.value)" />
+            <span class="day-ctx-unit">%</span>
+          </div>
+        </div>
+        <div class="day-ctx-bottom">
+          <span class="day-ctx-label">Notes</span>
+          <textarea class="day-ctx-notes" placeholder="Bean lot, equipment changes, observations..."
+            oninput="onDailyNotesChange('${date}', this.value)">${dn.notes || ''}</textarea>
+        </div>
+      </div>
+    `;
+  }).join('')}</div>`;
 }
 
 // ======================= CHARTS =======================
@@ -968,6 +1207,79 @@ function renderStats(filtered) {
   `;
 }
 
+function renderSessionCard(session) {
+  const origIdx = getOriginalIndex(session);
+  const allDeltas = session.steps.map(s => s.deltaSec);
+  const avgDelta = allDeltas.length > 0 ? Math.round(mean(allDeltas)) : 0;
+  const sourceClass = session.source === 'Live-data' ? 'source-live' : 'source-mock';
+  const avgClass = deltaClass(avgDelta) === 'negative' ? 'delta-negative' : deltaClass(avgDelta) === 'positive' ? 'delta-positive' : 'delta-neutral';
+
+  // Batch size: session override > profile default
+  const profileBatch = profiles.find(p => p.name === session.profileName)?.batch_size_lbs ?? '';
+  const sessionBatch = session.batchSizeLbs != null ? session.batchSizeLbs : profileBatch;
+
+  const group = groupAssignments[origIdx] || null;
+  const badgeClass = group === 'A' ? 'group-badge-a' : group === 'B' ? 'group-badge-b' : 'group-badge-none';
+  const badgeText = group || '\u00B7';
+  const groupBadgeHtml = compareMode
+    ? `<span class="group-badge ${badgeClass}" onclick="event.stopPropagation();toggleGroupAssignment(${origIdx})">${badgeText}</span>`
+    : '';
+
+  return `
+    <div class="session-card" ${compareMode && group ? `style="border-left:3px solid ${group === 'A' ? GROUP_A_COLOR : GROUP_B_COLOR}"` : ''}>
+      <div class="session-header" onclick="toggleSession(${origIdx})">
+        ${groupBadgeHtml}
+        <span class="session-profile">${session.profileName}</span>
+        <span class="session-date">${session.date}</span>
+        <span class="session-time">${session.time}</span>
+        <span class="session-source ${sourceClass}">${session.source}</span>
+        <span class="session-batch" onclick="event.stopPropagation()">
+          <input type="number" min="0" max="100" step="0.5" value="${sessionBatch}"
+            style="width:42px;background:#111;border:1px solid #2a2a2a;border-radius:4px;color:#999;font-size:12px;padding:2px 4px;text-align:center"
+            onchange="onSessionBatchChange(${origIdx}, this.value)" /><span style="font-size:11px;color:#555"> lbs</span>
+        </span>
+        <span class="session-steps-count">${session.steps.length} steps</span>
+        <span class="session-avg-delta ${avgClass}">avg ${formatDelta(avgDelta)}</span>
+        <button class="session-delete" onclick="event.stopPropagation();deleteSession(${origIdx})" title="Delete">\u2715</button>
+      </div>
+      <div class="session-body" id="sessionBody-${origIdx}">
+        <table class="steps-table">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Actions</th>
+              <th>Target Temp</th>
+              <th>Target Time</th>
+              <th>Actual Time</th>
+              <th>Delta</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${session.steps.map(step => `
+              <tr>
+                <td class="col-index">#${step.eventIndex}</td>
+                <td class="col-actions">${lookupActions(session.profileName, step.eventIndex)}</td>
+                <td class="col-temp">${step.targetTemp}\u00B0F</td>
+                <td class="col-target-time">${formatTime(step.targetTimeSec)}</td>
+                <td class="col-actual-time">${formatTime(step.actualTimeSec)}</td>
+                <td class="col-delta ${deltaClass(step.deltaSec)}">${formatDelta(step.deltaSec)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="session-notes-row">
+          <span class="session-notes-label">Notes</span>
+          <input class="session-notes-input" type="text"
+            placeholder="Observations for this roast..."
+            value="${(session.notes || '').replace(/"/g, '&quot;')}"
+            oninput="onSessionNotesChange(${origIdx}, this.value)" />
+          <span class="session-notes-saved" id="sessionNotesSaved-${origIdx}">saved</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderLogs(filtered) {
   const container = document.getElementById('logList');
   if (filtered.length === 0) {
@@ -979,64 +1291,13 @@ function renderLogs(filtered) {
     return;
   }
 
-  const sorted = [...filtered].reverse();
+  // Show newest first
+  const sorted = [...filtered].sort((a, b) => {
+    const cmp = b.date.localeCompare(a.date);
+    return cmp !== 0 ? cmp : b.time.localeCompare(a.time);
+  });
 
-  container.innerHTML = sorted.map((session, i) => {
-    const origIdx = getOriginalIndex(session);
-    const allDeltas = session.steps.map(s => s.deltaSec);
-    const avgDelta = allDeltas.length > 0 ? Math.round(mean(allDeltas)) : 0;
-    const sourceClass = session.source === 'Live-data' ? 'source-live' : 'source-mock';
-    const avgClass = deltaClass(avgDelta) === 'negative' ? 'delta-negative' : deltaClass(avgDelta) === 'positive' ? 'delta-positive' : 'delta-neutral';
-
-    // Group badge for compare mode
-    const group = groupAssignments[origIdx] || null;
-    const badgeClass = group === 'A' ? 'group-badge-a' : group === 'B' ? 'group-badge-b' : 'group-badge-none';
-    const badgeText = group || '\u00B7';
-    const groupBadgeHtml = compareMode
-      ? `<span class="group-badge ${badgeClass}" onclick="event.stopPropagation();toggleGroupAssignment(${origIdx})">${badgeText}</span>`
-      : '';
-
-    return `
-      <div class="session-card" ${compareMode && group ? `style="border-left:3px solid ${group === 'A' ? GROUP_A_COLOR : GROUP_B_COLOR}"` : ''}>
-        <div class="session-header" onclick="toggleSession(${origIdx})">
-          ${groupBadgeHtml}
-          <span class="session-profile">${session.profileName}</span>
-          <span class="session-date">${session.date}</span>
-          <span class="session-time">${session.time}</span>
-          <span class="session-source ${sourceClass}">${session.source}</span>
-          <span class="session-steps-count">${session.steps.length} steps</span>
-          <span class="session-avg-delta ${avgClass}">avg ${formatDelta(avgDelta)}</span>
-          <button class="session-delete" onclick="event.stopPropagation();deleteSession(${origIdx})" title="Delete">\u2715</button>
-        </div>
-        <div class="session-body" id="sessionBody-${origIdx}">
-          <table class="steps-table">
-            <thead>
-              <tr>
-                <th>Step</th>
-                <th>Actions</th>
-                <th>Target Temp</th>
-                <th>Target Time</th>
-                <th>Actual Time</th>
-                <th>Delta</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${session.steps.map(step => `
-                <tr>
-                  <td class="col-index">#${step.eventIndex}</td>
-                  <td class="col-actions">${lookupActions(session.profileName, step.eventIndex)}</td>
-                  <td class="col-temp">${step.targetTemp}\u00B0F</td>
-                  <td class="col-target-time">${formatTime(step.targetTimeSec)}</td>
-                  <td class="col-actual-time">${formatTime(step.actualTimeSec)}</td>
-                  <td class="col-delta ${deltaClass(step.deltaSec)}">${formatDelta(step.deltaSec)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }).join('');
+  container.innerHTML = sorted.map(session => renderSessionCard(session)).join('');
 }
 
 function toggleSession(origIdx) {

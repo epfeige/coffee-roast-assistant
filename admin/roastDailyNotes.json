@@ -1,0 +1,32 @@
+{
+  "2026-07-13": {
+    "weather": {
+      "tempMaxC": 26.5,
+      "tempMinC": 13.6,
+      "humidityPct": 62,
+      "source": "Open-Meteo",
+      "fetchedAt": "2026-07-14T13:14:18.711Z"
+    }
+  },
+  "2026-07-06": {
+    "weather": {
+      "tempMaxC": 22.1,
+      "tempMinC": 11.1,
+      "humidityPct": 79,
+      "source": "Open-Meteo",
+      "fetchedAt": "2026-07-14T13:17:08.626Z"
+    }
+  },
+  "2026-07-14": {
+    "weather": {
+      "tempMaxC": 21.9,
+      "tempMinC": 15.3,
+      "humidityPct": 81,
+      "source": "Open-Meteo",
+      "fetchedAt": "2026-07-14T13:18:12.316Z"
+    },
+    "drumPreheatMin": 48,
+    "_saveTimer": 28,
+    "notes": "Ceiling Fans on at 10:38. "
+  }
+}

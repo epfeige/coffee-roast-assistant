@@ -374,10 +374,12 @@ function collectCurrentProfile() {
   const nameEl    = document.getElementById('pf-name');
   const roasterEl = document.getElementById('pf-roaster');
   const recipeEl  = document.getElementById('pf-recipe');
+  const batchEl   = document.getElementById('pf-batch');
   const dtpEl     = document.getElementById('pf-dtp');
   if (nameEl)    p.name    = nameEl.value;
   if (roasterEl) p.roaster = roasterEl.value;
   if (recipeEl)  p.recipe  = recipeEl.value.trim() || undefined;
+  if (batchEl)   p.batch_size_lbs = batchEl.value !== '' ? parseFloat(batchEl.value) : undefined;
   if (dtpEl)     p.dtp_target = dtpEl.value !== '' ? parseFloat(dtpEl.value) : undefined;
 
   p.events.forEach((ev, i) => {
@@ -420,6 +422,13 @@ function renderProfile(id) {
         <div class="field">
           <label>Profile Name</label>
           <input id="pf-name" value="${p.name}" oninput="markDirty()" />
+          <label style="margin-top:12px">Batch Size</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input id="pf-batch" type="number" min="0" max="100" step="0.5"
+              value="${p.batch_size_lbs ?? ''}" placeholder="e.g. 18" oninput="markDirty()"
+              style="width:80px" />
+            <span style="font-size:12px;color:#666">lbs</span>
+          </div>
           <label style="margin-top:12px">Recipe</label>
           <textarea id="pf-recipe" rows="2" oninput="markDirty()">${p.recipe ?? ''}</textarea>
         </div>

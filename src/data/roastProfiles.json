@@ -162,8 +162,9 @@
           "estimated_time_seconds": 792
         }
       ],
-      "recipe": "20 lbs ->\n15 GUAT, \n5 BRAZ",
-      "dtp_target": 23.6
+      "recipe": "15 GUAT, \n5 BRAZ",
+      "dtp_target": 23.6,
+      "batch_size_lbs": 20
     },
     {
       "id": "e46",
@@ -304,8 +305,9 @@
           "estimated_time_seconds": 753
         }
       ],
-      "recipe": "18 lbs -> \n10 lbs SHB GUAT\n5 lbs BRAZ\n3 lbs GUJI",
-      "dtp_target": 23.8
+      "recipe": "10 lbs SHB GUAT\n5 lbs BRAZ\n3 lbs GUJI",
+      "dtp_target": 23.8,
+      "batch_size_lbs": 18
     },
     {
       "id": "profile_1779470243319",
@@ -475,8 +477,8 @@
           "estimated_time_seconds": 957
         }
       ],
-      "recipe": "18 lbs",
-      "dtp_target": 25
+      "dtp_target": 25,
+      "batch_size_lbs": 18
     },
     {
       "id": "profile_1780267446042",
@@ -633,8 +635,8 @@
           "estimated_time_seconds": 762
         }
       ],
-      "recipe": "18 lbs",
-      "dtp_target": 16.5
+      "dtp_target": 16.5,
+      "batch_size_lbs": 18
     },
     {
       "id": "profile_1780268969573",
@@ -791,8 +793,9 @@
           "estimated_time_seconds": 877
         }
       ],
-      "recipe": "20 lbs ->\n12 GUAT, \n4 COSTA, \n4 SUM",
-      "dtp_target": 24
+      "recipe": "12 GUAT, \n4 COSTA, \n4 SUM",
+      "dtp_target": 24,
+      "batch_size_lbs": 20
     },
     {
       "id": "profile_1780316459682",
@@ -962,8 +965,8 @@
           "estimated_time_seconds": 782
         }
       ],
-      "recipe": "18 lbs",
-      "dtp_target": 25.1
+      "dtp_target": 25.1,
+      "batch_size_lbs": 18
     },
     {
       "id": "profile_1780344374391",
@@ -1120,8 +1123,8 @@
           "estimated_time_seconds": 789
         }
       ],
-      "recipe": "20 lbs",
-      "dtp_target": 18
+      "dtp_target": 18,
+      "batch_size_lbs": 20
     }
   ]
 }

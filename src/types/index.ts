@@ -35,7 +35,9 @@ export interface RoastProfile {
   id: string;
   name: string;
   roaster: string;
-  /** Blend recipe — e.g. "18 lbs: 10 lbs GUAT, 5 lbs BRAZ, 3 lbs GUJI" */
+  /** Batch weight in pounds */
+  batch_size_lbs?: number;
+  /** Blend recipe — e.g. "10 lbs SHB GUAT, 5 lbs BRAZ, 3 lbs GUJI" */
   recipe?: string;
   /** Target Development Time Percent — e.g. 22 (%) */
   dtp_target?: number;
