@@ -1,0 +1,951 @@
+[
+  {
+    "profileName": "E46",
+    "date": "2026-07-06",
+    "time": "08:56",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 301,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 396,
+        "deltaSec": 3
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 532,
+        "deltaSec": 12
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 657,
+        "deltaSec": 0
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 687,
+        "deltaSec": -3
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 758,
+        "deltaSec": 5
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-06",
+    "time": "09:49",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 302,
+        "deltaSec": -3
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 397,
+        "deltaSec": 4
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 533,
+        "deltaSec": 13
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 655,
+        "deltaSec": -2
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 684,
+        "deltaSec": -6
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 753,
+        "deltaSec": 0
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-06",
+    "time": "10:15",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 300,
+        "deltaSec": -5
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 396,
+        "deltaSec": 3
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 530,
+        "deltaSec": 10
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 652,
+        "deltaSec": -5
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 680,
+        "deltaSec": -10
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 750,
+        "deltaSec": -3
+      }
+    ]
+  },
+  {
+    "profileName": "Columbian (New)",
+    "date": "2026-07-06",
+    "time": "11:09",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 270,
+        "targetTimeSec": 329,
+        "actualTimeSec": 321,
+        "deltaSec": -8
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 300,
+        "targetTimeSec": 399,
+        "actualTimeSec": 389,
+        "deltaSec": -10
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 330,
+        "targetTimeSec": 470,
+        "actualTimeSec": 463,
+        "deltaSec": -7
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 590,
+        "actualTimeSec": 585,
+        "deltaSec": -5
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 400,
+        "targetTimeSec": 687,
+        "actualTimeSec": 684,
+        "deltaSec": -3
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 412,
+        "targetTimeSec": 738,
+        "actualTimeSec": 747,
+        "deltaSec": 9
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 418,
+        "targetTimeSec": 789,
+        "actualTimeSec": 785,
+        "deltaSec": -4
+      }
+    ]
+  },
+  {
+    "profileName": "Columbian (New)",
+    "date": "2026-07-06",
+    "time": "11:37",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 270,
+        "targetTimeSec": 329,
+        "actualTimeSec": 306,
+        "deltaSec": -23
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 300,
+        "targetTimeSec": 399,
+        "actualTimeSec": 370,
+        "deltaSec": -29
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 330,
+        "targetTimeSec": 470,
+        "actualTimeSec": 439,
+        "deltaSec": -31
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 590,
+        "actualTimeSec": 550,
+        "deltaSec": -40
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 400,
+        "targetTimeSec": 687,
+        "actualTimeSec": 642,
+        "deltaSec": -45
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 412,
+        "targetTimeSec": 738,
+        "actualTimeSec": 699,
+        "deltaSec": -39
+      }
+    ]
+  },
+  {
+    "profileName": "Benchmark",
+    "date": "2026-07-06",
+    "time": "12:11",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 332,
+        "actualTimeSec": 315,
+        "deltaSec": -17
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 410,
+        "actualTimeSec": 418,
+        "deltaSec": 8
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 350,
+        "targetTimeSec": 525,
+        "actualTimeSec": 501,
+        "deltaSec": -24
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 599,
+        "actualTimeSec": 568,
+        "deltaSec": -31
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 400,
+        "targetTimeSec": 705,
+        "actualTimeSec": 676,
+        "deltaSec": -29
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 415,
+        "targetTimeSec": 782,
+        "actualTimeSec": 742,
+        "deltaSec": -40
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 426,
+        "targetTimeSec": 877,
+        "actualTimeSec": 810,
+        "deltaSec": -67
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-06",
+    "time": "12:37",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 301,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 399,
+        "deltaSec": 6
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 532,
+        "deltaSec": 12
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 655,
+        "deltaSec": -2
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 683,
+        "deltaSec": -7
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 749,
+        "deltaSec": -4
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-06",
+    "time": "13:04",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 303,
+        "deltaSec": -2
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 399,
+        "deltaSec": 6
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 534,
+        "deltaSec": 14
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 655,
+        "deltaSec": -2
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 682,
+        "deltaSec": -8
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 747,
+        "deltaSec": -6
+      }
+    ]
+  },
+  {
+    "profileName": "Prato",
+    "date": "2026-07-13",
+    "time": "09:29",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 270,
+        "targetTimeSec": 314,
+        "actualTimeSec": 310,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 300,
+        "targetTimeSec": 372,
+        "actualTimeSec": 374,
+        "deltaSec": 2
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 320,
+        "targetTimeSec": 415,
+        "actualTimeSec": 421,
+        "deltaSec": 6
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 547,
+        "actualTimeSec": 567,
+        "deltaSec": 20
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 408,
+        "targetTimeSec": 688,
+        "actualTimeSec": 698,
+        "deltaSec": 10
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 417,
+        "targetTimeSec": 733,
+        "actualTimeSec": 741,
+        "deltaSec": 8
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 429,
+        "targetTimeSec": 792,
+        "actualTimeSec": 816,
+        "deltaSec": 24
+      }
+    ]
+  },
+  {
+    "profileName": "Prato",
+    "date": "2026-07-13",
+    "time": "09:55",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 270,
+        "targetTimeSec": 314,
+        "actualTimeSec": 310,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 300,
+        "targetTimeSec": 372,
+        "actualTimeSec": 375,
+        "deltaSec": 3
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 320,
+        "targetTimeSec": 415,
+        "actualTimeSec": 421,
+        "deltaSec": 6
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 547,
+        "actualTimeSec": 568,
+        "deltaSec": 21
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 408,
+        "targetTimeSec": 688,
+        "actualTimeSec": 699,
+        "deltaSec": 11
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 417,
+        "targetTimeSec": 733,
+        "actualTimeSec": 740,
+        "deltaSec": 7
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 429,
+        "targetTimeSec": 792,
+        "actualTimeSec": 812,
+        "deltaSec": 20
+      }
+    ]
+  },
+  {
+    "profileName": "Prato",
+    "date": "2026-07-13",
+    "time": "10:22",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 270,
+        "targetTimeSec": 314,
+        "actualTimeSec": 308,
+        "deltaSec": -6
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 300,
+        "targetTimeSec": 372,
+        "actualTimeSec": 372,
+        "deltaSec": 0
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 320,
+        "targetTimeSec": 415,
+        "actualTimeSec": 418,
+        "deltaSec": 3
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 370,
+        "targetTimeSec": 547,
+        "actualTimeSec": 564,
+        "deltaSec": 17
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 408,
+        "targetTimeSec": 688,
+        "actualTimeSec": 692,
+        "deltaSec": 4
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 417,
+        "targetTimeSec": 733,
+        "actualTimeSec": 732,
+        "deltaSec": -1
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 429,
+        "targetTimeSec": 792,
+        "actualTimeSec": 801,
+        "deltaSec": 9
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "10:49",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 305,
+        "deltaSec": 0
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 402,
+        "deltaSec": 9
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 540,
+        "deltaSec": 20
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 667,
+        "deltaSec": 10
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 697,
+        "deltaSec": 7
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 767,
+        "deltaSec": 14
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "11:15",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 306,
+        "deltaSec": 1
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 404,
+        "deltaSec": 11
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 543,
+        "deltaSec": 23
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 667,
+        "deltaSec": 10
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 695,
+        "deltaSec": 5
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 765,
+        "deltaSec": 12
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "11:42",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 307,
+        "deltaSec": 2
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 405,
+        "deltaSec": 12
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 541,
+        "deltaSec": 21
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 666,
+        "deltaSec": 9
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 694,
+        "deltaSec": 4
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 763,
+        "deltaSec": 10
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "12:09",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 301,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 396,
+        "deltaSec": 3
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 530,
+        "deltaSec": 10
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 652,
+        "deltaSec": -5
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 680,
+        "deltaSec": -10
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 749,
+        "deltaSec": -4
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "12:34",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 301,
+        "deltaSec": -4
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 397,
+        "deltaSec": 4
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 534,
+        "deltaSec": 14
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 659,
+        "deltaSec": 2
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 689,
+        "deltaSec": -1
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 760,
+        "deltaSec": 7
+      }
+    ]
+  },
+  {
+    "profileName": "E46",
+    "date": "2026-07-13",
+    "time": "13:00",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 275,
+        "targetTimeSec": 305,
+        "actualTimeSec": 299,
+        "deltaSec": -6
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 320,
+        "targetTimeSec": 393,
+        "actualTimeSec": 394,
+        "deltaSec": 1
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 370,
+        "targetTimeSec": 520,
+        "actualTimeSec": 529,
+        "deltaSec": 9
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 410,
+        "targetTimeSec": 657,
+        "actualTimeSec": 650,
+        "deltaSec": -7
+      },
+      {
+        "eventIndex": 7,
+        "targetTemp": 418,
+        "targetTimeSec": 690,
+        "actualTimeSec": 680,
+        "deltaSec": -10
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 432,
+        "targetTimeSec": 753,
+        "actualTimeSec": 748,
+        "deltaSec": -5
+      }
+    ]
+  },
+  {
+    "profileName": "J Hill - El Salvador",
+    "date": "2026-07-14",
+    "time": "08:57",
+    "source": "Live-data",
+    "steps": [
+      {
+        "eventIndex": 2,
+        "targetTemp": 240,
+        "targetTimeSec": 274,
+        "actualTimeSec": 229,
+        "deltaSec": -45
+      },
+      {
+        "eventIndex": 3,
+        "targetTemp": 275,
+        "targetTimeSec": 324,
+        "actualTimeSec": 290,
+        "deltaSec": -34
+      },
+      {
+        "eventIndex": 4,
+        "targetTemp": 290,
+        "targetTimeSec": 386,
+        "actualTimeSec": 319,
+        "deltaSec": -67
+      },
+      {
+        "eventIndex": 5,
+        "targetTemp": 350,
+        "targetTimeSec": 533,
+        "actualTimeSec": 469,
+        "deltaSec": -64
+      },
+      {
+        "eventIndex": 6,
+        "targetTemp": 370,
+        "targetTimeSec": 609,
+        "actualTimeSec": 535,
+        "deltaSec": -74
+      },
+      {
+        "eventIndex": 8,
+        "targetTemp": 414,
+        "targetTimeSec": 842,
+        "actualTimeSec": 688,
+        "deltaSec": -154
+      },
+      {
+        "eventIndex": 9,
+        "targetTemp": 425,
+        "targetTimeSec": 902,
+        "actualTimeSec": 737,
+        "deltaSec": -165
+      },
+      {
+        "eventIndex": 10,
+        "targetTemp": 437,
+        "targetTimeSec": 957,
+        "actualTimeSec": 803,
+        "deltaSec": -154
+      }
+    ]
+  }
+]
