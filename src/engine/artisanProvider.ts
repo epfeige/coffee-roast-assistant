@@ -6,6 +6,7 @@ type StatusCallback = (status: WsStatus) => void;
 type FrameCallback = (bt: number | null, et: number | null, ror: number | null, elapsedSeconds: number | null) => void;
 
 const RECONNECT_DELAY_MS = 3000;
+const STALE_DATA_MS = 5000;
 
 /**
  * Phase 3 provider — reads live temperature from Artisan's WebLCD WebSocket.
@@ -33,6 +34,7 @@ export class ArtisanProvider implements TemperatureProvider {
   private url: string | null = null;
   private active = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private staleTimer: ReturnType<typeof setTimeout> | null = null;
   private onStatus: StatusCallback;
   private onFrame: FrameCallback | null = null;
 
@@ -57,6 +59,7 @@ export class ArtisanProvider implements TemperatureProvider {
   disconnect(): void {
     this.active = false;
     this._clearReconnect();
+    this._clearStaleTimer();
     if (this.ws) {
       this.ws.onopen = null;
       this.ws.onmessage = null;
@@ -106,6 +109,7 @@ export class ArtisanProvider implements TemperatureProvider {
 
     ws.onmessage = (event) => {
       if (ws !== this.ws) return;
+      this._clearStaleTimer();
       try {
         const msg = JSON.parse(event.data as string);
         // WebLCD format: {"data":{"time":"05:30","bt":"385.2","et":"397.4"}}
@@ -151,16 +155,15 @@ export class ArtisanProvider implements TemperatureProvider {
 
     ws.onclose = () => {
       if (ws !== this.ws) return;
-      this.bt = null;
-      this.et = null;
-      this.ror = null;
-      this.elapsedSeconds = null;
+      // Keep last-known values on brief disconnects — only null them after STALE_DATA_MS
       this.prevBt = null;
       this.prevBtTime = null;
       if (this.active) {
         this.onStatus('connecting');
+        this._startStaleTimer();
         this._scheduleReconnect();
       } else {
+        this._clearValues();
         this.onStatus('disconnected');
       }
     };
@@ -177,6 +180,30 @@ export class ArtisanProvider implements TemperatureProvider {
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+  }
+
+  private _clearValues(): void {
+    this.bt = null;
+    this.et = null;
+    this.ror = null;
+    this.elapsedSeconds = null;
+    this.prevBt = null;
+    this.prevBtTime = null;
+    this.onFrame?.(null, null, null, null);
+  }
+
+  private _startStaleTimer(): void {
+    this._clearStaleTimer();
+    this.staleTimer = setTimeout(() => {
+      this._clearValues();
+    }, STALE_DATA_MS);
+  }
+
+  private _clearStaleTimer(): void {
+    if (this.staleTimer !== null) {
+      clearTimeout(this.staleTimer);
+      this.staleTimer = null;
     }
   }
 }
