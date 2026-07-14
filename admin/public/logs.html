@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>E46 Roast — Roast Logs</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -126,7 +127,6 @@
       text-transform: uppercase; letter-spacing: 2px;
       border-bottom: 2px solid #333;
       background: #f5f5f5;
-      /* font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; */
     }
     .step-stats-table { width: 100%; border-collapse: collapse; }
     .step-stats-table th {
@@ -134,13 +134,11 @@
       color: #555; padding: 8px 12px; text-align: left;
       border-bottom: 2px solid #999;
       background: #f0f0f0;
-      /* font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; */
       font-weight: 700;
     }
     .step-stats-table td {
       padding: 8px 12px; font-size: 11px; border-bottom: 1px solid #ddd;
       font-variant-numeric: tabular-nums;
-      /* font-family: 'SF Mono', 'Menlo', 'Consolas', monospace; */
       color: #222;
     }
     .step-stats-table tr:hover { background: #f8f8f8; }
@@ -159,6 +157,86 @@
     }
     .empty-state h2 { font-size: 20px; }
     .empty-state p { font-size: 14px; }
+
+    /* Charts section */
+    .chart-section {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .chart-header {
+      padding: 14px 20px; display: flex; align-items: center; gap: 16px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    .chart-title {
+      font-size: 12px; font-weight: 700; color: #666;
+      text-transform: uppercase; letter-spacing: 1.2px;
+    }
+    .chart-body { padding: 16px 20px; }
+    .chart-canvas-wrap {
+      position: relative; height: 320px;
+    }
+
+    /* Compare mode */
+    .compare-bar {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .compare-btn {
+      padding: 6px 16px; border-radius: 16px; border: 1px solid #2a2a2a;
+      background: #1e1e1e; color: #888; font-size: 12px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.5px;
+    }
+    .compare-btn:hover { border-color: #555; color: #ccc; }
+    .compare-btn.active { background: #7C4A00; border-color: #E67E22; color: #FFB347; }
+    .compare-btn.group-a { background: #1a2a3a; border-color: #4DA6FF; color: #4DA6FF; }
+    .compare-btn.group-b { background: #2a1a1a; border-color: #FF6B6B; color: #FF6B6B; }
+    .compare-hint { font-size: 11px; color: #555; margin-left: 8px; }
+
+    /* Group badges on session cards */
+    .group-badge {
+      font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 10px;
+      cursor: pointer; letter-spacing: 0.5px;
+    }
+    .group-badge-none { background: #222; color: #555; border: 1px solid #333; }
+    .group-badge-a { background: #1a2a3a; color: #4DA6FF; border: 1px solid #4DA6FF; }
+    .group-badge-b { background: #2a1a1a; color: #FF6B6B; border: 1px solid #FF6B6B; }
+
+    /* Quick-select buttons */
+    .quick-select { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+    .quick-btn {
+      padding: 4px 12px; border-radius: 12px; border: 1px solid #333;
+      background: #222; color: #888; font-size: 11px; cursor: pointer;
+    }
+    .quick-btn:hover { border-color: #555; color: #ccc; }
+
+    /* Comparison stats table */
+    .compare-stats {
+      background: #fff; border: 1px solid #ccc; border-radius: 4px;
+      margin-bottom: 24px; overflow: hidden;
+    }
+    .compare-stats-title {
+      padding: 10px 20px; font-size: 12px; font-weight: 700; color: #111;
+      text-transform: uppercase; letter-spacing: 2px;
+      border-bottom: 2px solid #333;
+      background: #f5f5f5;
+    }
+    .compare-stats-table { width: 100%; border-collapse: collapse; }
+    .compare-stats-table th {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #555; padding: 8px 12px; text-align: left;
+      border-bottom: 2px solid #999; background: #f0f0f0; font-weight: 700;
+    }
+    .compare-stats-table td {
+      padding: 7px 12px; font-size: 11px; border-bottom: 1px solid #ddd;
+      font-variant-numeric: tabular-nums; color: #222;
+    }
+    .compare-stats-table tr:hover { background: #f8f8f8; }
+    .compare-stats-table tr:last-child td { border-bottom: none; }
+    .compare-stats-table .col-a { color: #2874A6; font-weight: 600; }
+    .compare-stats-table .col-b { color: #C0392B; font-weight: 600; }
+    .compare-stats-table .col-diff { font-weight: 700; }
+    .compare-stats-table .col-diff.better { color: #27ae60; }
+    .compare-stats-table .col-diff.worse { color: #c0392b; }
+    .compare-stats-table .col-diff.same { color: #888; }
   </style>
 </head>
 <body>
@@ -175,6 +253,8 @@
 <div class="main">
   <div class="filters" id="filters"></div>
   <div class="stats-bar" id="statsBar"></div>
+  <div id="chartArea"></div>
+  <div id="compareStats"></div>
   <div id="stepStats"></div>
   <div id="logList"></div>
 </div>
@@ -185,6 +265,15 @@ let profiles = [];
 let filterProfile = 'all';
 let filterSource = 'all';
 let filterDate = 'all';
+
+// Compare mode
+let compareMode = false;
+// Map: original log index → 'A' | 'B' | null
+let groupAssignments = {};
+
+// Chart instances
+let deltaChart = null;
+let driftChart = null;
 
 function formatTime(sec) {
   const m = Math.floor(Math.abs(sec) / 60);
@@ -211,8 +300,36 @@ function lookupActions(profileName, eventIndex) {
   if (!profile) return '';
   const ev = profile.events.find(e => e.index === eventIndex);
   if (!ev || ev.type !== 'action') return '';
-  return ev.actions.join(' · ');
+  return ev.actions.join(' \u00B7 ');
 }
+
+function stdDev(arr) {
+  if (arr.length < 2) return 0;
+  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+  const variance = arr.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (arr.length - 1);
+  return Math.round(Math.sqrt(variance) * 10) / 10;
+}
+
+function mean(arr) {
+  if (!arr.length) return 0;
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
+
+// Session label for chart legends
+function sessionLabel(s) {
+  return `${s.date} ${s.time}`;
+}
+
+// --- Color palettes ---
+const SESSION_COLORS = [
+  '#4DA6FF', '#FF6B6B', '#2ECC71', '#E67E22', '#9B59B6',
+  '#1ABC9C', '#F39C12', '#E74C3C', '#3498DB', '#8E44AD',
+  '#27AE60', '#D35400', '#2980B9', '#C0392B', '#16A085',
+];
+const GROUP_A_COLOR = '#4DA6FF';
+const GROUP_A_BG = 'rgba(77,166,255,0.08)';
+const GROUP_B_COLOR = '#FF6B6B';
+const GROUP_B_BG = 'rgba(255,107,107,0.08)';
 
 async function loadLogs() {
   const [logsRes, profilesRes] = await Promise.all([
@@ -233,6 +350,11 @@ function getFilteredLogs() {
     if (filterDate !== 'all' && l.date !== filterDate) return false;
     return true;
   });
+}
+
+// Get original index in logs[] for a filtered session
+function getOriginalIndex(session) {
+  return logs.indexOf(session);
 }
 
 function renderFilters() {
@@ -262,21 +384,486 @@ function renderFilters() {
 function renderAll() {
   const filtered = getFilteredLogs();
   renderStats(filtered);
+  renderCharts(filtered);
+  renderCompareStats(filtered);
   renderStepStats(filtered);
   renderLogs(filtered);
 }
 
-function stdDev(arr) {
-  if (arr.length < 2) return 0;
-  const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
-  const variance = arr.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (arr.length - 1);
-  return Math.round(Math.sqrt(variance) * 10) / 10;
+// ======================= CHARTS =======================
+
+function renderCharts(filtered) {
+  const container = document.getElementById('chartArea');
+  const profileNames = [...new Set(filtered.map(l => l.profileName))];
+  const singleProfile = profileNames.length === 1;
+
+  if (filtered.length < 1) {
+    container.innerHTML = '';
+    if (deltaChart) { deltaChart.destroy(); deltaChart = null; }
+    if (driftChart) { driftChart.destroy(); driftChart = null; }
+    return;
+  }
+
+  // Build DOM
+  container.innerHTML = `
+    <div class="chart-section">
+      <div class="chart-header">
+        <span class="chart-title">Delta by Step</span>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <button class="compare-btn ${compareMode ? 'active' : ''}" onclick="toggleCompareMode()">
+            Compare Sets
+          </button>
+          ${compareMode && singleProfile ? `
+            <span class="compare-hint">Click sessions below to assign A/B</span>
+            <div class="quick-select">
+              <button class="quick-btn" onclick="quickSplitByDate()" title="Assign each date to its own group">By Date</button>
+              <button class="quick-btn" onclick="quickSplitByHalf()" title="Split first half / second half">1st Half / 2nd Half</button>
+              <button class="quick-btn" onclick="quickSplitMorningAfternoon()" title="Before noon = A, after noon = B">AM / PM</button>
+              <button class="quick-btn" onclick="clearGroups()">Clear</button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-canvas-wrap">
+          <canvas id="deltaCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+    ${singleProfile && filtered.length >= 3 ? `
+    <div class="chart-section">
+      <div class="chart-header">
+        <span class="chart-title">Session Drift — Mean Delta Over Time</span>
+      </div>
+      <div class="chart-body">
+        <div class="chart-canvas-wrap" style="height:240px">
+          <canvas id="driftCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+  `;
+
+  renderDeltaChart(filtered, singleProfile);
+  if (singleProfile && filtered.length >= 3) {
+    renderDriftChart(filtered);
+  } else {
+    if (driftChart) { driftChart.destroy(); driftChart = null; }
+  }
 }
+
+function renderDeltaChart(filtered, singleProfile) {
+  if (deltaChart) { deltaChart.destroy(); deltaChart = null; }
+  const canvas = document.getElementById('deltaCanvas');
+  if (!canvas) return;
+
+  if (!singleProfile) {
+    // Multi-profile: show per-session lines, label includes profile name
+    renderDeltaChartMulti(canvas, filtered);
+    return;
+  }
+
+  // Single profile: steps align
+  const allStepTemps = [...new Set(filtered.flatMap(s => s.steps.map(st => st.targetTemp)))].sort((a, b) => a - b);
+  const labels = allStepTemps.map(t => `${t}\u00B0F`);
+
+  if (compareMode) {
+    renderDeltaChartCompare(canvas, filtered, allStepTemps, labels);
+  } else {
+    renderDeltaChartOverlay(canvas, filtered, allStepTemps, labels);
+  }
+}
+
+function renderDeltaChartOverlay(canvas, filtered, allStepTemps, labels) {
+  const datasets = filtered.map((session, i) => {
+    const data = allStepTemps.map(temp => {
+      const step = session.steps.find(s => s.targetTemp === temp);
+      return step ? step.deltaSec : null;
+    });
+    return {
+      label: sessionLabel(session),
+      data,
+      borderColor: SESSION_COLORS[i % SESSION_COLORS.length],
+      backgroundColor: SESSION_COLORS[i % SESSION_COLORS.length],
+      borderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.3,
+      spanGaps: true,
+    };
+  });
+
+  deltaChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: deltaChartOptions('Delta (seconds)'),
+  });
+}
+
+function renderDeltaChartCompare(canvas, filtered, allStepTemps, labels) {
+  const groupA = filtered.filter(s => groupAssignments[getOriginalIndex(s)] === 'A');
+  const groupB = filtered.filter(s => groupAssignments[getOriginalIndex(s)] === 'B');
+
+  const datasets = [];
+
+  // Individual lines — faded
+  filtered.forEach((session, i) => {
+    const group = groupAssignments[getOriginalIndex(session)];
+    const color = group === 'A' ? GROUP_A_COLOR : group === 'B' ? GROUP_B_COLOR : '#555';
+    const data = allStepTemps.map(temp => {
+      const step = session.steps.find(s => s.targetTemp === temp);
+      return step ? step.deltaSec : null;
+    });
+    datasets.push({
+      label: sessionLabel(session),
+      data,
+      borderColor: color + '55',
+      backgroundColor: color + '55',
+      borderWidth: 1,
+      pointRadius: 2,
+      tension: 0.3,
+      spanGaps: true,
+    });
+  });
+
+  // Mean lines for groups
+  if (groupA.length) {
+    const meanData = allStepTemps.map(temp => {
+      const vals = groupA.map(s => s.steps.find(st => st.targetTemp === temp)?.deltaSec).filter(v => v != null);
+      return vals.length ? mean(vals) : null;
+    });
+    datasets.push({
+      label: `Group A mean (n=${groupA.length})`,
+      data: meanData,
+      borderColor: GROUP_A_COLOR,
+      backgroundColor: GROUP_A_BG,
+      borderWidth: 3,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      tension: 0.3,
+      spanGaps: true,
+      fill: true,
+    });
+  }
+  if (groupB.length) {
+    const meanData = allStepTemps.map(temp => {
+      const vals = groupB.map(s => s.steps.find(st => st.targetTemp === temp)?.deltaSec).filter(v => v != null);
+      return vals.length ? mean(vals) : null;
+    });
+    datasets.push({
+      label: `Group B mean (n=${groupB.length})`,
+      data: meanData,
+      borderColor: GROUP_B_COLOR,
+      backgroundColor: GROUP_B_BG,
+      borderWidth: 3,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      tension: 0.3,
+      spanGaps: true,
+      fill: true,
+    });
+  }
+
+  deltaChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: deltaChartOptions('Delta (seconds) — Compare'),
+  });
+}
+
+function renderDeltaChartMulti(canvas, filtered) {
+  // Multi-profile: use target temp as X for each session independently
+  // Collect all unique target temps across all sessions
+  const allTemps = [...new Set(filtered.flatMap(s => s.steps.map(st => st.targetTemp)))].sort((a, b) => a - b);
+  const labels = allTemps.map(t => `${t}\u00B0F`);
+
+  const datasets = filtered.map((session, i) => {
+    const data = allTemps.map(temp => {
+      const step = session.steps.find(s => s.targetTemp === temp);
+      return step ? step.deltaSec : null;
+    });
+    return {
+      label: `${session.profileName} ${session.time}`,
+      data,
+      borderColor: SESSION_COLORS[i % SESSION_COLORS.length],
+      backgroundColor: SESSION_COLORS[i % SESSION_COLORS.length],
+      borderWidth: 2,
+      pointRadius: 4,
+      tension: 0.3,
+      spanGaps: false,
+    };
+  });
+
+  deltaChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: deltaChartOptions('Delta (seconds)'),
+  });
+}
+
+function deltaChartOptions(yLabel) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        labels: { color: '#999', font: { size: 11 }, boxWidth: 14, padding: 12 },
+        position: 'bottom',
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${formatDelta(Math.round(ctx.parsed.y))}`,
+        },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: '#888', font: { size: 11 } },
+        grid: { color: '#2a2a2a' },
+      },
+      y: {
+        title: { display: true, text: yLabel, color: '#666', font: { size: 11 } },
+        ticks: {
+          color: '#888', font: { size: 11 },
+          callback: v => formatDelta(v),
+        },
+        grid: { color: '#2a2a2a' },
+      },
+    },
+  };
+}
+
+// ===================== DRIFT CHART =====================
+
+function renderDriftChart(filtered) {
+  if (driftChart) { driftChart.destroy(); driftChart = null; }
+  const canvas = document.getElementById('driftCanvas');
+  if (!canvas) return;
+
+  // Group by date
+  const byDate = {};
+  filtered.forEach(s => {
+    if (!byDate[s.date]) byDate[s.date] = [];
+    byDate[s.date].push(s);
+  });
+  const dates = Object.keys(byDate).sort();
+
+  const datasets = dates.map((date, di) => {
+    const sessions = byDate[date].sort((a, b) => a.time.localeCompare(b.time));
+    const data = sessions.map((s, i) => ({
+      x: i + 1,
+      y: Math.round(mean(s.steps.map(st => st.deltaSec))),
+      label: s.time,
+    }));
+    return {
+      label: date,
+      data: data.map(d => d.y),
+      borderColor: SESSION_COLORS[di % SESSION_COLORS.length],
+      backgroundColor: SESSION_COLORS[di % SESSION_COLORS.length],
+      borderWidth: 2,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      tension: 0.3,
+    };
+  });
+
+  // Find max number of sessions in a day
+  const maxSessions = Math.max(...dates.map(d => byDate[d].length));
+  const labels = Array.from({ length: maxSessions }, (_, i) => `Roast ${i + 1}`);
+
+  driftChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#999', font: { size: 11 }, boxWidth: 14, padding: 12 },
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const date = dates[ctx.datasetIndex];
+              const sessions = byDate[date].sort((a, b) => a.time.localeCompare(b.time));
+              const s = sessions[ctx.dataIndex];
+              return `${date} ${s ? s.time : ''}: avg ${formatDelta(ctx.parsed.y)}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { color: '#888', font: { size: 11 } },
+          grid: { color: '#2a2a2a' },
+        },
+        y: {
+          title: { display: true, text: 'Mean Delta (sec)', color: '#666', font: { size: 11 } },
+          ticks: {
+            color: '#888', font: { size: 11 },
+            callback: v => formatDelta(v),
+          },
+          grid: { color: '#2a2a2a' },
+        },
+      },
+    },
+  });
+}
+
+// ================= COMPARE MODE =================
+
+function toggleCompareMode() {
+  compareMode = !compareMode;
+  if (!compareMode) groupAssignments = {};
+  renderAll();
+}
+
+function toggleGroupAssignment(origIdx) {
+  const current = groupAssignments[origIdx] || null;
+  if (current === null) groupAssignments[origIdx] = 'A';
+  else if (current === 'A') groupAssignments[origIdx] = 'B';
+  else delete groupAssignments[origIdx];
+  renderAll();
+}
+
+function clearGroups() {
+  groupAssignments = {};
+  renderAll();
+}
+
+function quickSplitByDate() {
+  const filtered = getFilteredLogs();
+  const dates = [...new Set(filtered.map(l => l.date))].sort();
+  if (dates.length < 2) {
+    // Only one date — split by first half / second half
+    quickSplitByHalf();
+    return;
+  }
+  // First date = A, rest = B (or if 2 dates: first = A, second = B)
+  filtered.forEach(s => {
+    const oi = getOriginalIndex(s);
+    groupAssignments[oi] = s.date === dates[0] ? 'A' : 'B';
+  });
+  renderAll();
+}
+
+function quickSplitByHalf() {
+  const filtered = getFilteredLogs();
+  const sorted = [...filtered].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const mid = Math.ceil(sorted.length / 2);
+  sorted.forEach((s, i) => {
+    groupAssignments[getOriginalIndex(s)] = i < mid ? 'A' : 'B';
+  });
+  renderAll();
+}
+
+function quickSplitMorningAfternoon() {
+  const filtered = getFilteredLogs();
+  filtered.forEach(s => {
+    const hour = parseInt(s.time.split(':')[0], 10);
+    groupAssignments[getOriginalIndex(s)] = hour < 12 ? 'A' : 'B';
+  });
+  renderAll();
+}
+
+// ============== COMPARISON STATS TABLE ==============
+
+function renderCompareStats(filtered) {
+  const container = document.getElementById('compareStats');
+  if (!compareMode) { container.innerHTML = ''; return; }
+
+  const profileNames = [...new Set(filtered.map(l => l.profileName))];
+  if (profileNames.length !== 1) { container.innerHTML = ''; return; }
+
+  const groupA = filtered.filter(s => groupAssignments[getOriginalIndex(s)] === 'A');
+  const groupB = filtered.filter(s => groupAssignments[getOriginalIndex(s)] === 'B');
+
+  if (!groupA.length || !groupB.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const allStepTemps = [...new Set(filtered.flatMap(s => s.steps.map(st => st.targetTemp)))].sort((a, b) => a - b);
+  const profileName = profileNames[0];
+
+  const rows = allStepTemps.map(temp => {
+    const deltasA = groupA.flatMap(s => s.steps.filter(st => st.targetTemp === temp).map(st => st.deltaSec));
+    const deltasB = groupB.flatMap(s => s.steps.filter(st => st.targetTemp === temp).map(st => st.deltaSec));
+    const meanA = deltasA.length ? Math.round(mean(deltasA)) : null;
+    const meanB = deltasB.length ? Math.round(mean(deltasB)) : null;
+    const sdA = deltasA.length >= 2 ? stdDev(deltasA) : null;
+    const sdB = deltasB.length >= 2 ? stdDev(deltasB) : null;
+    const diff = (meanA != null && meanB != null) ? meanB - meanA : null;
+    const actions = lookupActions(profileName, filtered[0].steps.find(st => st.targetTemp === temp)?.eventIndex);
+    return { temp, meanA, meanB, sdA, sdB, diff, nA: deltasA.length, nB: deltasB.length, actions };
+  });
+
+  // Overall means
+  const allDeltasA = groupA.flatMap(s => s.steps.map(st => st.deltaSec));
+  const allDeltasB = groupB.flatMap(s => s.steps.map(st => st.deltaSec));
+  const overallMeanA = Math.round(mean(allDeltasA));
+  const overallMeanB = Math.round(mean(allDeltasB));
+  const overallDiff = overallMeanB - overallMeanA;
+
+  function diffClass(d) {
+    if (d == null) return 'same';
+    // Closer to zero is "better"
+    return Math.abs(d) <= 2 ? 'same' : 'worse';
+  }
+
+  container.innerHTML = `
+    <div class="compare-stats">
+      <div class="compare-stats-title">
+        <span style="color:#2874A6">Group A</span> (${groupA.length} sessions)
+        vs
+        <span style="color:#C0392B">Group B</span> (${groupB.length} sessions)
+        — ${profileName}
+      </div>
+      <table class="compare-stats-table">
+        <thead>
+          <tr>
+            <th>Target</th>
+            <th>Actions</th>
+            <th style="color:#2874A6">A Mean</th>
+            <th style="color:#2874A6">A \u03C3</th>
+            <th style="color:#C0392B">B Mean</th>
+            <th style="color:#C0392B">B \u03C3</th>
+            <th>Diff (B\u2212A)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td>${r.temp}\u00B0F</td>
+              <td style="color:#666;font-size:11px">${r.actions}</td>
+              <td class="col-a">${r.meanA != null ? formatDelta(r.meanA) : '\u2014'}</td>
+              <td class="col-a" style="font-weight:400;color:#5A7A9A">${r.sdA != null ? r.sdA.toFixed(1) + 's' : '\u2014'}</td>
+              <td class="col-b">${r.meanB != null ? formatDelta(r.meanB) : '\u2014'}</td>
+              <td class="col-b" style="font-weight:400;color:#A04040">${r.sdB != null ? r.sdB.toFixed(1) + 's' : '\u2014'}</td>
+              <td class="col-diff ${diffClass(r.diff)}">${r.diff != null ? formatDelta(r.diff) : '\u2014'}</td>
+            </tr>
+          `).join('')}
+          <tr style="border-top:2px solid #999;font-weight:700">
+            <td colspan="2" style="color:#555">OVERALL</td>
+            <td class="col-a">${formatDelta(overallMeanA)}</td>
+            <td class="col-a" style="font-weight:400;color:#5A7A9A">${stdDev(allDeltasA).toFixed(1)}s</td>
+            <td class="col-b">${formatDelta(overallMeanB)}</td>
+            <td class="col-b" style="font-weight:400;color:#A04040">${stdDev(allDeltasB).toFixed(1)}s</td>
+            <td class="col-diff ${diffClass(overallDiff)}">${formatDelta(overallDiff)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// =================== EXISTING VIEWS ===================
 
 function renderStepStats(filtered) {
   const container = document.getElementById('stepStats');
-
-  // Only show when a single profile is filtered (steps don't align across profiles)
   const profileNames = [...new Set(filtered.map(l => l.profileName))];
   if (profileNames.length !== 1 || filtered.length < 2) {
     container.innerHTML = '';
@@ -284,8 +871,6 @@ function renderStepStats(filtered) {
   }
 
   const profileName = profileNames[0];
-
-  // Group deltas by eventIndex
   const stepMap = {};
   filtered.forEach(session => {
     session.steps.forEach(step => {
@@ -300,7 +885,7 @@ function renderStepStats(filtered) {
 
   container.innerHTML = `
     <div class="step-stats">
-      <div class="step-stats-title">Per-step analysis — ${profileName} (${filtered.length} sessions)</div>
+      <div class="step-stats-title">Per-step analysis \u2014 ${profileName} (${filtered.length} sessions)</div>
       <table class="step-stats-table">
         <thead>
           <tr>
@@ -317,19 +902,19 @@ function renderStepStats(filtered) {
         <tbody>
           ${stepIndexes.map(idx => {
             const s = stepMap[idx];
-            const mean = Math.round(s.deltas.reduce((a, b) => a + b, 0) / s.deltas.length);
+            const m = Math.round(mean(s.deltas));
             const sd = stdDev(s.deltas);
             const min = Math.min(...s.deltas);
             const max = Math.max(...s.deltas);
-            const meanClass = deltaClass(mean);
+            const meanClass = deltaClass(m);
             const actions = lookupActions(profileName, idx);
             return `
               <tr>
                 <td class="col-index">#${idx}</td>
                 <td class="col-actions">${actions}</td>
-                <td>${s.targetTemp}°F</td>
+                <td>${s.targetTemp}\u00B0F</td>
                 <td style="color:#5A7A9A">${formatTime(s.targetTimeSec)}</td>
-                <td class="col-delta ${meanClass}" style="font-weight:700">${formatDelta(mean)}</td>
+                <td class="col-delta ${meanClass}" style="font-weight:700">${formatDelta(m)}</td>
                 <td class="col-std">\u03C3 ${sd.toFixed(1)}s</td>
                 <td class="col-range">${formatDelta(min)} \u2026 ${formatDelta(max)}</td>
                 <td class="col-n">${s.deltas.length}</td>
@@ -352,7 +937,7 @@ function renderStats(filtered) {
   bar.style.display = 'flex';
 
   const allDeltas = filtered.flatMap(l => l.steps.map(s => s.deltaSec));
-  const avgDelta = allDeltas.length > 0 ? Math.round(allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length) : 0;
+  const avgDelta = allDeltas.length > 0 ? Math.round(mean(allDeltas)) : 0;
   const minDelta = allDeltas.length > 0 ? Math.min(...allDeltas) : 0;
   const maxDelta = allDeltas.length > 0 ? Math.max(...allDeltas) : 0;
   const totalSteps = allDeltas.length;
@@ -394,28 +979,36 @@ function renderLogs(filtered) {
     return;
   }
 
-  // Show newest first
   const sorted = [...filtered].reverse();
 
   container.innerHTML = sorted.map((session, i) => {
-    const idx = filtered.length - 1 - i;
+    const origIdx = getOriginalIndex(session);
     const allDeltas = session.steps.map(s => s.deltaSec);
-    const avgDelta = allDeltas.length > 0 ? Math.round(allDeltas.reduce((a, b) => a + b, 0) / allDeltas.length) : 0;
+    const avgDelta = allDeltas.length > 0 ? Math.round(mean(allDeltas)) : 0;
     const sourceClass = session.source === 'Live-data' ? 'source-live' : 'source-mock';
     const avgClass = deltaClass(avgDelta) === 'negative' ? 'delta-negative' : deltaClass(avgDelta) === 'positive' ? 'delta-positive' : 'delta-neutral';
 
+    // Group badge for compare mode
+    const group = groupAssignments[origIdx] || null;
+    const badgeClass = group === 'A' ? 'group-badge-a' : group === 'B' ? 'group-badge-b' : 'group-badge-none';
+    const badgeText = group || '\u00B7';
+    const groupBadgeHtml = compareMode
+      ? `<span class="group-badge ${badgeClass}" onclick="event.stopPropagation();toggleGroupAssignment(${origIdx})">${badgeText}</span>`
+      : '';
+
     return `
-      <div class="session-card">
-        <div class="session-header" onclick="toggleSession(${idx})">
+      <div class="session-card" ${compareMode && group ? `style="border-left:3px solid ${group === 'A' ? GROUP_A_COLOR : GROUP_B_COLOR}"` : ''}>
+        <div class="session-header" onclick="toggleSession(${origIdx})">
+          ${groupBadgeHtml}
           <span class="session-profile">${session.profileName}</span>
           <span class="session-date">${session.date}</span>
           <span class="session-time">${session.time}</span>
           <span class="session-source ${sourceClass}">${session.source}</span>
           <span class="session-steps-count">${session.steps.length} steps</span>
           <span class="session-avg-delta ${avgClass}">avg ${formatDelta(avgDelta)}</span>
-          <button class="session-delete" onclick="event.stopPropagation();deleteSession(${idx})" title="Delete">✕</button>
+          <button class="session-delete" onclick="event.stopPropagation();deleteSession(${origIdx})" title="Delete">\u2715</button>
         </div>
-        <div class="session-body" id="sessionBody-${idx}">
+        <div class="session-body" id="sessionBody-${origIdx}">
           <table class="steps-table">
             <thead>
               <tr>
@@ -432,7 +1025,7 @@ function renderLogs(filtered) {
                 <tr>
                   <td class="col-index">#${step.eventIndex}</td>
                   <td class="col-actions">${lookupActions(session.profileName, step.eventIndex)}</td>
-                  <td class="col-temp">${step.targetTemp}°F</td>
+                  <td class="col-temp">${step.targetTemp}\u00B0F</td>
                   <td class="col-target-time">${formatTime(step.targetTimeSec)}</td>
                   <td class="col-actual-time">${formatTime(step.actualTimeSec)}</td>
                   <td class="col-delta ${deltaClass(step.deltaSec)}">${formatDelta(step.deltaSec)}</td>
@@ -446,18 +1039,27 @@ function renderLogs(filtered) {
   }).join('');
 }
 
-function toggleSession(idx) {
-  const body = document.getElementById(`sessionBody-${idx}`);
+function toggleSession(origIdx) {
+  const body = document.getElementById(`sessionBody-${origIdx}`);
   if (body) body.classList.toggle('open');
 }
 
-async function deleteSession(idx) {
-  const session = logs[idx];
+async function deleteSession(origIdx) {
+  const session = logs[origIdx];
   if (!session) return;
   if (!confirm(`Delete ${session.profileName} (${session.date} ${session.time})?`)) return;
-  const res = await fetch(`/api/roast-logs/${idx}`, { method: 'DELETE' });
+  const res = await fetch(`/api/roast-logs/${origIdx}`, { method: 'DELETE' });
   if (res.ok) {
-    logs.splice(idx, 1);
+    delete groupAssignments[origIdx];
+    logs.splice(origIdx, 1);
+    // Re-index group assignments after splice
+    const newAssignments = {};
+    Object.entries(groupAssignments).forEach(([k, v]) => {
+      const idx = parseInt(k, 10);
+      if (idx > origIdx) newAssignments[idx - 1] = v;
+      else newAssignments[idx] = v;
+    });
+    groupAssignments = newAssignments;
     renderFilters();
     renderAll();
   }
