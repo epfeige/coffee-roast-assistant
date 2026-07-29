@@ -432,11 +432,43 @@ export default function RoastScreen({ navigation }: Props) {
   const displayTarget = effectiveTarget ?? currentTriggerTemp;
   const displaySource = currentSource;
 
-  function handleExit() {
-    postSessionLog();
-    resetRoast();
-    navigation.goBack();
-  }
+  // Guard the roast against accidental exits (swipe, Android back, stray tap).
+  // The swipe gesture is disabled in App.tsx; this catches the hardware back
+  // button and the Exit Roast button, confirming before an in-progress roast ends.
+  const leavingRef = useRef(false);
+  const isCompleteRef = useRef(false);
+  isCompleteRef.current = engineState?.isComplete ?? false;
+  useEffect(() => {
+    const unsub = navigation.addListener('beforeRemove', (e) => {
+      // Already confirmed, or roast is finished — clean up and let it go.
+      if (leavingRef.current || isCompleteRef.current) {
+        postSessionLog();
+        resetRoast();
+        return;
+      }
+      // In-progress roast: block the exit and ask first.
+      e.preventDefault();
+      Alert.alert(
+        'End roast?',
+        'Your roast is still in progress. Leaving will end it.',
+        [
+          { text: 'Keep roasting', style: 'cancel' },
+          {
+            text: 'End roast',
+            style: 'destructive',
+            onPress: () => {
+              leavingRef.current = true;
+              postSessionLog();
+              resetRoast();
+              navigation.dispatch(e.data.action);
+            },
+          },
+        ]
+      );
+    });
+    return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigation]);
 
   return (
     <SafeAreaView style={s.container}>
@@ -691,7 +723,7 @@ export default function RoastScreen({ navigation }: Props) {
           </Animated.View>
         )}
 
-        <TouchableOpacity style={s.exitBtn} onPress={handleExit}>
+        <TouchableOpacity style={s.exitBtn} onPress={() => navigation.goBack()}>
           <Text style={s.exitBtnText}>Exit Roast</Text>
         </TouchableOpacity>
       </ScrollView>

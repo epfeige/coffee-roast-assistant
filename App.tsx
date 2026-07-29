@@ -36,7 +36,11 @@ export default function App() {
         >
           <Stack.Screen name="ProfileSelect" component={ProfileSelectScreen} />
           <Stack.Screen name="Recipe" component={RecipeScreen} />
-          <Stack.Screen name="Roast" component={RoastScreen} />
+          <Stack.Screen
+            name="Roast"
+            component={RoastScreen}
+            options={{ gestureEnabled: false }}
+          />
           <Stack.Screen name="Settings" component={SettingsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
