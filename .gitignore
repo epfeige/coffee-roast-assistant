@@ -47,3 +47,7 @@ venv/
 # generated native folders
 /ios
 /android
+
+# admin runtime data (written by the admin server as roasts are logged)
+admin/roastLogs.json
+admin/roastDailyNotes.json
