@@ -95,6 +95,12 @@
       background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
       margin-bottom: 12px; overflow: hidden;
     }
+    /* Info events are for reference only, not an action to perform — keep them visually quieter */
+    .event-card--info { background: #151515; border-color: #232323; }
+    .event-card--info .event-index {
+      background: #1f1f1f; color: #6a6a6a; font-weight: 600; font-style: italic;
+    }
+    .event-card--info .event-summary-title { color: #049cb7; font-weight: 500; font-style: italic; }
     .event-card-header {
       padding: 12px 16px; display: flex; align-items: center; gap: 12px;
       cursor: pointer; user-select: none;
@@ -472,7 +478,7 @@ function renderEventCard(ev, i, total) {
     : `Info ${infosBefore}`;
 
   return `
-    <div class="event-card" id="eventCard-${i}">
+    <div class="event-card ${ev.type === 'info' ? 'event-card--info' : ''}" id="eventCard-${i}">
       <div class="event-card-header" onclick="toggleEvent(${i})">
         <div class="event-index" title="index ${i}">${stepLabel}</div>
         <div class="event-phase-dot" style="background:${color}"></div>
