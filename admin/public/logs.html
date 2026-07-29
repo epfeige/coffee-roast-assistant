@@ -135,6 +135,7 @@
       border-bottom: 2px solid #999;
       background: #f0f0f0;
       font-weight: 700;
+      vertical-align: bottom; line-height: 1.25;
     }
     .step-stats-table td {
       padding: 8px 12px; font-size: 11px; border-bottom: 1px solid #ddd;
@@ -147,6 +148,7 @@
     .step-stats-table .col-std { color: #555; }
     .step-stats-table .col-actions { color: #666; font-size: 12px; }
     .step-stats-table .col-range { color: #777; font-size: 12px; }
+    .step-stats-table .col-actual { color: #222; font-weight: 600; }
     .step-stats-table .col-delta.negative { color: #c0392b; }
     .step-stats-table .col-delta.positive { color: #27ae60; }
     .step-stats-table .col-delta.on-time { color: #555; }
@@ -1131,9 +1133,10 @@ function renderStepStats(filtered) {
             <th>Step</th>
             <th>Actions</th>
             <th>Target</th>
-            <th>Target Time</th>
-            <th>Mean delta</th>
-            <th>Std dev</th>
+            <th>Target<br>Time</th>
+            <th>Actual<br>Time</th>
+            <th>Mean<br>delta</th>
+            <th>Std<br>dev</th>
             <th>Range</th>
             <th>n</th>
           </tr>
@@ -1153,6 +1156,7 @@ function renderStepStats(filtered) {
                 <td class="col-actions">${actions}</td>
                 <td>${s.targetTemp}\u00B0F</td>
                 <td style="color:#5A7A9A">${formatTime(s.targetTimeSec)}</td>
+                <td class="col-actual">${formatTime(s.targetTimeSec + m)}</td>
                 <td class="col-delta ${meanClass}" style="font-weight:700">${formatDelta(m)}</td>
                 <td class="col-std">\u03C3 ${sd.toFixed(1)}s</td>
                 <td class="col-range">${formatDelta(min)} \u2026 ${formatDelta(max)}</td>
