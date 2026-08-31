@@ -99,16 +99,23 @@ export class ArtisanProvider implements TemperatureProvider {
     if (!this.url || !this.active) return;
     this.onStatus('connecting');
 
+    if (__DEV__) console.log('[Artisan] connecting to', this.url);
     const ws = new WebSocket(this.url);
     this.ws = ws;
+    let sawMessage = false;
 
     ws.onopen = () => {
       if (ws !== this.ws) return;
+      if (__DEV__) console.log('[Artisan] WebSocket open — handshake accepted');
       this.onStatus('connected');
     };
 
     ws.onmessage = (event) => {
       if (ws !== this.ws) return;
+      if (__DEV__ && !sawMessage) {
+        sawMessage = true;
+        console.log('[Artisan] first frame:', event.data);
+      }
       this._clearStaleTimer();
       try {
         const msg = JSON.parse(event.data as string);
@@ -150,11 +157,13 @@ export class ArtisanProvider implements TemperatureProvider {
 
     ws.onerror = () => {
       if (ws !== this.ws) return;
+      if (__DEV__) console.warn('[Artisan] WebSocket error for', this.url);
       this.onStatus('error');
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (ws !== this.ws) return;
+      if (__DEV__) console.warn(`[Artisan] WebSocket closed — code ${event.code}${event.reason ? ` (${event.reason})` : ''}, clean=${event.wasClean}`);
       // Keep last-known values on brief disconnects — only null them after STALE_DATA_MS
       this.prevBt = null;
       this.prevBtTime = null;

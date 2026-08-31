@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Animated,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef } from 'react';
@@ -19,6 +18,7 @@ import { areActionsComplete, EngineState } from '../engine/roastEngine';
 import { formatTime } from '../utils/formatTime';
 import { RootStackParamList } from '../../App';
 import { useSoundPreference, SOUND_OPTIONS } from '../hooks/useSoundPreference';
+import { confirmDestructive, notify } from '../utils/dialog';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Roast'>;
@@ -356,7 +356,7 @@ export default function RoastScreen({ navigation }: Props) {
 
     const adminIp = state.adminServerIp.trim();
     if (!adminIp) {
-      Alert.alert('Recording', 'No admin server IP configured in Settings — roast log not saved.');
+      notify('Recording', 'No admin server IP configured in Settings — roast log not saved.');
       postFiredRef.current = false; // allow retry after configuring
       return;
     }
@@ -377,13 +377,13 @@ export default function RoastScreen({ navigation }: Props) {
         if (res.ok) {
           clearRecordedSteps();
         } else {
-          Alert.alert('Recording', `Failed to save roast log (status ${res.status}).`);
+          notify('Recording', `Failed to save roast log (status ${res.status}).`);
           postFiredRef.current = false; // allow retry
         }
       })
       .catch(() => {
         clearTimeout(timeout);
-        Alert.alert('Recording', 'Could not reach admin server — roast log not saved. Check that the server is running.');
+        notify('Recording', 'Could not reach admin server — roast log not saved. Check that the server is running.');
         postFiredRef.current = false; // allow retry
       });
   }
@@ -448,22 +448,17 @@ export default function RoastScreen({ navigation }: Props) {
       }
       // In-progress roast: block the exit and ask first.
       e.preventDefault();
-      Alert.alert(
+      confirmDestructive(
         'End roast?',
         'Your roast is still in progress. Leaving will end it.',
-        [
-          { text: 'Keep roasting', style: 'cancel' },
-          {
-            text: 'End roast',
-            style: 'destructive',
-            onPress: () => {
-              leavingRef.current = true;
-              postSessionLog();
-              resetRoast();
-              navigation.dispatch(e.data.action);
-            },
-          },
-        ]
+        'End roast',
+        () => {
+          leavingRef.current = true;
+          postSessionLog();
+          resetRoast();
+          navigation.dispatch(e.data.action);
+        },
+        'Keep roasting',
       );
     });
     return unsub;

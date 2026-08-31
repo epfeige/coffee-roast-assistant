@@ -145,18 +145,20 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
   useDevBridge: false,
   setBridgeIp: (ip) => {
     set({ bridgeIp: ip });
+    // Persist immediately so the IP survives a reload; only the reconnect is debounced.
+    AsyncStorage.setItem(BRIDGE_IP_STORAGE_KEY, ip);
     if (bridgeDebounce) clearTimeout(bridgeDebounce);
     bridgeDebounce = setTimeout(() => {
-      AsyncStorage.setItem(BRIDGE_IP_STORAGE_KEY, ip);
       // Only reconnect if this is the active source
       if (!get().useDevBridge) connectActiveIp(get());
     }, 800);
   },
   setDevBridgeIp: (ip) => {
     set({ devBridgeIp: ip });
+    // Persist immediately so the IP survives a reload; only the reconnect is debounced.
+    AsyncStorage.setItem(DEV_BRIDGE_IP_STORAGE_KEY, ip);
     if (devBridgeDebounce) clearTimeout(devBridgeDebounce);
     devBridgeDebounce = setTimeout(() => {
-      AsyncStorage.setItem(DEV_BRIDGE_IP_STORAGE_KEY, ip);
       if (get().useDevBridge) connectActiveIp(get());
     }, 800);
   },
