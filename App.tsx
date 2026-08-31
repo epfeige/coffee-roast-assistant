@@ -3,7 +3,6 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
-import { Audio } from 'expo-av';
 import ProfileSelectScreen from './src/screens/ProfileSelectScreen';
 import RecipeScreen from './src/screens/RecipeScreen';
 import RoastScreen from './src/screens/RoastScreen';
@@ -24,16 +23,7 @@ export default function App() {
     'DSEG7': require('./assets/fonts/DSEG7Classic-Bold.ttf'),
   });
   const loadSettings = useRoastStore(s => s.loadSettings);
-  useEffect(() => {
-    loadSettings();
-    // Alert sounds must be audible during a roast even when the iPhone's
-    // hardware silent switch is on — iOS mutes app audio in silent mode unless
-    // playsInSilentModeIOS is set. Without this, alerts were silently dropped.
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-    }).catch(() => {/* non-fatal: sounds still play with the ringer on */});
-  }, []);
+  useEffect(() => { loadSettings(); }, []);
 
   if (!fontsLoaded) return null;
 
