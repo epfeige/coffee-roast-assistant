@@ -377,7 +377,7 @@
         {
           "index": 4,
           "trigger": {
-            "temperature": 290,
+            "temperature": 295,
             "unit": "F",
             "source": "ART"
           },
@@ -474,7 +474,10 @@
             "🌬 Move to Cooling Tray",
             "⏹ Stop ART / ROR Recording"
           ],
-          "estimated_time_seconds": 957
+          "estimated_time_seconds": 957,
+          "notes": [
+            "DTP 25%"
+          ]
         }
       ],
       "dtp_target": 25,
@@ -1444,6 +1447,162 @@
         }
       ],
       "dtp_target": 21,
+      "batch_size_lbs": 18
+    },
+    {
+      "id": "profile_1787652430837",
+      "name": "Tirra Honey",
+      "roaster": "E46",
+      "events": [
+        {
+          "index": 0,
+          "trigger": {
+            "temperature": 370,
+            "unit": "F",
+            "source": "PID"
+          },
+          "type": "action",
+          "phase": "preheat",
+          "actions": [
+            "🔥 Gas 5",
+            "💻 Start ART"
+          ],
+          "estimated_time_seconds": 0
+        },
+        {
+          "index": 1,
+          "trigger": {
+            "temperature": 400,
+            "unit": "F",
+            "source": "PID"
+          },
+          "type": "action",
+          "phase": "drying",
+          "actions": [
+            "🫘 Charge Beans"
+          ],
+          "estimated_time_seconds": null
+        },
+        {
+          "index": 2,
+          "trigger": {
+            "temperature": 275,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "drying",
+          "actions": [
+            "🌬 Air 1 (50/50)",
+            "🔥 Gas 4"
+          ],
+          "estimated_time_seconds": 313
+        },
+        {
+          "index": 3,
+          "trigger": {
+            "temperature": 320,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "maillard",
+          "actions": [
+            "🔥 Gas 3"
+          ],
+          "estimated_time_seconds": 405
+        },
+        {
+          "index": 4,
+          "trigger": {
+            "temperature": 360,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "maillard",
+          "actions": [
+            "🔥 Gas 2"
+          ],
+          "estimated_time_seconds": 509
+        },
+        {
+          "index": 5,
+          "trigger": {
+            "temperature": 370,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "maillard",
+          "actions": [
+            "🌬 Air 100% Drum (A2)"
+          ],
+          "estimated_time_seconds": 538
+        },
+        {
+          "index": 6,
+          "trigger": {
+            "temperature": 389,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "info",
+          "phase": "development",
+          "info": [
+            "First Crack begins",
+            "Development phase active"
+          ],
+          "estimated_time_seconds": null,
+          "hidden": true
+        },
+        {
+          "index": 7,
+          "trigger": {
+            "temperature": 406,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "development",
+          "actions": [
+            "🔥 Gas 1"
+          ],
+          "estimated_time_seconds": 663
+        },
+        {
+          "index": 8,
+          "trigger": {
+            "temperature": 412,
+            "unit": "F",
+            "source": "ART"
+          },
+          "type": "action",
+          "phase": "development",
+          "actions": [
+            "🔥 Gas OFF"
+          ],
+          "estimated_time_seconds": 710
+        },
+        {
+          "index": 9,
+          "trigger": {
+            "temperature": 422,
+            "unit": "F",
+            "source": "PID"
+          },
+          "type": "action",
+          "phase": "end",
+          "actions": [
+            "🫘 Drop Beans",
+            "🌬 Move to Cooling Tray",
+            "⏹ Stop ART / ROR Recording"
+          ],
+          "estimated_time_seconds": 760
+        }
+      ],
+      "recipe": "18 lb Tirra honey",
+      "dtp_target": 22.5,
       "batch_size_lbs": 18
     }
   ]
