@@ -1,0 +1,11 @@
+{
+  // The admin server (admin/server.js) listens on 127.0.0.1:3001.
+  // VSCode's auto port-forwarding ("remote.autoForwardPortsSource": "hybrid" in
+  // user settings) was binding 127.0.0.1:3001 itself and intercepting localhost
+  // with a proxy that hangs. Disable auto-forward for this workspace, and
+  // explicitly tell VSCode to never forward port 3001.
+  "remote.autoForwardPorts": false,
+  "remote.portsAttributes": {
+    "3001": { "onAutoForward": "ignore" }
+  }
+}

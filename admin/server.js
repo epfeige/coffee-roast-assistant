@@ -180,6 +180,10 @@ app.patch('/api/roast-logs/:index', (req, res) => {
   res.json({ ok: true });
 });
 
+// Bind 0.0.0.0 so the mobile app can reach this server over the LAN
+// (phone -> Mac's LAN IP:3001). The VSCode auto-forward hijack of localhost is
+// handled separately by .vscode/settings.json (auto-forward disabled + port
+// 3001 ignored), which does not affect LAN access.
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n✅ Roast Profile Admin running at http://0.0.0.0:${PORT}\n`);
+  console.log(`\n✅ Roast Profile Admin running at http://localhost:${PORT} (LAN: http://0.0.0.0:${PORT})\n`);
 });
