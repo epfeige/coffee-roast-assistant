@@ -68,6 +68,8 @@ export default function RoastScreen({ navigation }: Props) {
   const selectedProfile = useRoastStore(s => s.selectedProfile);
   const toggleAction    = useRoastStore(s => s.toggleAction);
   const advanceEvent    = useRoastStore(s => s.advanceEvent);
+  const skipForward     = useRoastStore(s => s.skipForward);
+  const skipBack        = useRoastStore(s => s.skipBack);
   const resetRoast      = useRoastStore(s => s.resetRoast);
   const elapsedSeconds  = useRoastStore(s => s.elapsedSeconds);
   const roastStartedAt  = useRoastStore(s => s.roastStartedAt);
@@ -411,6 +413,40 @@ export default function RoastScreen({ navigation }: Props) {
     : 0;
   const stepLabel = isInfoEvent ? `Info ${infoNumber}` : `${actionStepNumber}/${totalSteps}`;
 
+  // Best-guess of which step the roast is actually on, from live BT: the event
+  // whose trigger temp is nearest the current bean temp (tie → later step).
+  // Only a hint — the BT curve isn't monotonic, so this is meaningful during
+  // the climb, which is when realigning matters.
+  const guessedIndex = (() => {
+    if (!isLive || btLive === null) return null;
+    // A steep BT drop means the beans were just charged — pin to the Charge
+    // step. This disambiguates the post-charge plunge, where BT sweeps back
+    // down through temps that also map to later climb steps.
+    const FAST_DROP_ROR = -30; // °F/min
+    if (rorLive !== null && rorLive < FAST_DROP_ROR) {
+      const chargeIdx = selectedProfile.events.findIndex(
+        e => e.type === 'action' && (e as ActionEvent).actions.some(a => /charge/i.test(a)),
+      );
+      if (chargeIdx >= 0) return chargeIdx;
+    }
+    // Otherwise, nearest trigger temp (tie → later step).
+    let best = -1;
+    let bestDiff = Infinity;
+    selectedProfile.events.forEach((ev, i) => {
+      const diff = Math.abs(ev.trigger.temperature - btLive);
+      if (diff <= bestDiff) { bestDiff = diff; best = i; }
+    });
+    return best >= 0 ? best : null;
+  })();
+  const guessedLabel = guessedIndex !== null ? (() => {
+    const ev = selectedProfile.events[guessedIndex];
+    const upTo = selectedProfile.events.slice(0, guessedIndex + 1);
+    return ev.type === 'info'
+      ? `Info ${upTo.filter(e => e.type === 'info').length}`
+      : `Step ${upTo.filter(e => e.type === 'action').length}/${totalSteps}`;
+  })() : null;
+  const guessedIsCurrent = guessedIndex !== null && guessedIndex === engineState.currentEventIndex;
+
   // Derive current gas/air state from profile history
   const gasLevel = deriveGasLevel(selectedProfile, engineState);
   const airSymbol = deriveAirSymbol(selectedProfile, engineState);
@@ -670,6 +706,43 @@ export default function RoastScreen({ navigation }: Props) {
           <View style={s.completeCard}>
             <Text style={s.completeEmoji}>☕</Text>
             <Text style={s.completeText}>Roast complete!</Text>
+          </View>
+        )}
+
+        {/* Skip controls — realign the engine to the live roast */}
+        {!isComplete && (
+          <View style={s.skipRow}>
+            <TouchableOpacity
+              style={[s.skipBtn, engineState.currentEventIndex <= 0 && s.skipBtnDisabled]}
+              disabled={engineState.currentEventIndex <= 0}
+              onPress={() => {
+                skipBack();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={[s.skipBtnText, engineState.currentEventIndex <= 0 && s.skipBtnTextDisabled]}>
+                ◂ Back
+              </Text>
+            </TouchableOpacity>
+            {guessedLabel !== null ? (
+              <View style={s.skipGuess}>
+                <Text style={s.skipGuessLabel}>LIVE BT ≈</Text>
+                <Text style={[s.skipGuessValue, guessedIsCurrent && s.skipGuessValueOnStep]}>
+                  {guessedLabel}{guessedIsCurrent ? ' ✓' : ''}
+                </Text>
+              </View>
+            ) : (
+              <Text style={s.skipHint}>SKIP TO LIVE STEP</Text>
+            )}
+            <TouchableOpacity
+              style={s.skipBtn}
+              onPress={() => {
+                skipForward();
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={s.skipBtnText}>Skip ▸</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1038,6 +1111,57 @@ const s = StyleSheet.create({
     fontWeight: '700',
   },
 
+  skipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
+  },
+  skipBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#242424',
+    backgroundColor: '#141414',
+  },
+  skipBtnDisabled: {
+    opacity: 0.35,
+  },
+  skipBtnText: {
+    color: '#BBB',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  skipBtnTextDisabled: {
+    color: '#666',
+  },
+  skipHint: {
+    color: '#666',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  skipGuess: {
+    alignItems: 'center',
+  },
+  skipGuessLabel: {
+    color: '#666',
+    fontSize: 8,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+  },
+  skipGuessValue: {
+    color: '#AAA',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 1,
+    fontVariant: ['tabular-nums'],
+  },
+  skipGuessValueOnStep: {
+    color: '#5B9A6A',
+  },
+
   nextCard: {
     backgroundColor: '#111',
     borderRadius: 10,
@@ -1108,7 +1232,7 @@ const s = StyleSheet.create({
     borderColor: '#1A1A1A',
     alignItems: 'center',
   },
-  exitBtnText: { color: '#333', fontSize: 13 },
+  exitBtnText: { color: '#888', fontSize: 13 },
 
   /* REC toggle */
   recToggle: {

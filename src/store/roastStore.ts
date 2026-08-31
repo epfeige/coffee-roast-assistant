@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RoastProfile, RoastStepLog } from '../types';
+import { RoastProfile, RoastStepLog, ActionEvent } from '../types';
 import {
   EngineState,
   createInitialEngineState,
@@ -69,6 +69,8 @@ interface RoastStore {
   startRoast: () => void;
   toggleAction: (eventIndex: number, actionIndex: number) => void;
   advanceEvent: () => void;
+  skipForward: () => void;
+  skipBack: () => void;
   resetRoast: () => void;
 }
 
@@ -294,6 +296,58 @@ export const useRoastStore = create<RoastStore>((set, get) => ({
     set({ engineState: newEngineState, preAlertActive: false, secondsUntilNext: null });
 
     if (newEngineState.isComplete) clearTimer();
+  },
+
+  // Skip ahead one step without ticking off its actions — used to realign the
+  // engine to what's actually happening (e.g. after a restart, or when reality
+  // has drifted from the profile). Mark the current step's actions complete so
+  // it doesn't linger as a "confirm previous" nag, then advance via the normal
+  // path (which preserves the charge-timer start).
+  skipForward: () => {
+    const { engineState } = get();
+    if (!engineState || engineState.isComplete) return;
+    const cur = engineState.currentEvent;
+    if (cur && cur.type === 'action') {
+      const done = (cur as ActionEvent).actions.map(() => true);
+      set({
+        engineState: {
+          ...engineState,
+          completedActions: { ...engineState.completedActions, [cur.index]: done },
+        },
+      });
+    }
+    get().advanceEvent();
+  },
+
+  // Step back one event (recovers from an over-skip). Re-arms the target step's
+  // actions so it can be performed again, and clears the complete flag.
+  skipBack: () => {
+    const { selectedProfile, engineState } = get();
+    if (!selectedProfile || !engineState) return;
+    let prevIndex = engineState.currentEventIndex - 1;
+    while (prevIndex >= 0) {
+      const ev = selectedProfile.events[prevIndex];
+      if (ev.type === 'info' && (ev as { hidden?: boolean }).hidden === true) prevIndex--;
+      else break;
+    }
+    if (prevIndex < 0) return; // already at the first step
+    const target = selectedProfile.events[prevIndex];
+    const completedActions = { ...engineState.completedActions };
+    if (target.type === 'action') {
+      completedActions[target.index] = (target as ActionEvent).actions.map(() => false);
+    }
+    set({
+      engineState: {
+        ...engineState,
+        currentEventIndex: prevIndex,
+        currentEvent: target,
+        nextEvent: selectedProfile.events[prevIndex + 1] ?? null,
+        isComplete: false,
+        completedActions,
+      },
+      preAlertActive: false,
+      secondsUntilNext: null,
+    });
   },
 
   resetRoast: () => {
