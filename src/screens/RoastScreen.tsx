@@ -283,7 +283,13 @@ export default function RoastScreen({ navigation }: Props) {
   const countdownFiredRef = useRef<Set<number>>(new Set());
   const prevTargetRef = useRef<number | null>(null);
 
-  if (effectiveTarget !== prevTargetRef.current) {
+  // Reset the fired-state only when we lock onto a genuinely NEW target.
+  // effectiveTarget collapses to null on any tick where instantaneous RoR dips
+  // to <= 0 (isRising flips on sensor noise). Resetting on that null->value
+  // churn re-fired the entry + countdown beeps every time RoR jittered across
+  // zero — the "constant binging" bug. Ignore the null bounces; only reset when
+  // the target actually changes (e.g. the roast advances to the next step).
+  if (effectiveTarget !== null && effectiveTarget !== prevTargetRef.current) {
     prevTargetRef.current = effectiveTarget;
     entryFiredRef.current = false;
     lastHapticBtRef.current = null;

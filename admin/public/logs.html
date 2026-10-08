@@ -45,6 +45,18 @@
     }
     .filter-select:focus { outline: none; border-color: #e67e22; }
 
+    /* Multi-date chips */
+    .date-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .date-chip {
+      padding: 6px 12px; border-radius: 14px; border: 1px solid #2a2a2a;
+      background: #1e1e1e; color: #888; font-size: 12px; font-weight: 600;
+      cursor: pointer; letter-spacing: 0.3px; font-variant-numeric: tabular-nums;
+      user-select: none;
+    }
+    .date-chip:hover { border-color: #555; color: #ccc; }
+    .date-chip.active { background: #7C4A00; border-color: #E67E22; color: #FFB347; }
+    .date-chip.all-chip.active { background: #2a2a2a; border-color: #666; color: #ddd; }
+
     /* Session cards */
     .session-card {
       background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px;
@@ -346,7 +358,8 @@ let profiles = [];
 let dailyNotes = {}; // { "2026-07-13": { weather: {...}, notes: "...", drumPreheatMin: 20 } }
 let filterProfile = 'all';
 let filterSource = 'all';
-let filterDate = 'all';
+// Multi-date selection: empty Set means "all dates"
+let selectedDates = new Set();
 
 // Compare mode
 let compareMode = false;
@@ -440,7 +453,7 @@ function getFilteredLogs() {
   return logs.filter(l => {
     if (filterProfile !== 'all' && l.profileName !== filterProfile) return false;
     if (filterSource !== 'all' && l.source !== filterSource) return false;
-    if (filterDate !== 'all' && l.date !== filterDate) return false;
+    if (selectedDates.size > 0 && !selectedDates.has(l.date)) return false;
     return true;
   });
 }
@@ -455,23 +468,41 @@ function renderFilters() {
   const sources = [...new Set(logs.map(l => l.source))].sort();
   const dates = [...new Set(logs.map(l => l.date))].sort().reverse();
 
+  // Drop any selected dates that no longer exist (e.g. after a delete)
+  for (const d of [...selectedDates]) {
+    if (!dates.includes(d)) selectedDates.delete(d);
+  }
+
   document.getElementById('filters').innerHTML = `
     <span class="filter-label">Profile</span>
     <select class="filter-select" onchange="filterProfile=this.value;renderAll()">
       <option value="all">All profiles</option>
       ${profileNames.map(p => `<option value="${p}" ${filterProfile===p?'selected':''}>${p}</option>`).join('')}
     </select>
-    <span class="filter-label" style="margin-left:8px">Date</span>
-    <select class="filter-select" onchange="filterDate=this.value;renderAll()">
-      <option value="all">All dates</option>
-      ${dates.map(d => `<option value="${d}" ${filterDate===d?'selected':''}>${d}</option>`).join('')}
-    </select>
+    <span class="filter-label" style="margin-left:8px">Dates</span>
+    <div class="date-chips">
+      <span class="date-chip all-chip ${selectedDates.size===0?'active':''}" onclick="setAllDates()">All</span>
+      ${dates.map(d => `<span class="date-chip ${selectedDates.has(d)?'active':''}" onclick="toggleDate('${d}')">${d}</span>`).join('')}
+    </div>
     <span class="filter-label" style="margin-left:8px">Source</span>
     <select class="filter-select" onchange="filterSource=this.value;renderAll()">
       <option value="all">All sources</option>
       ${sources.map(s => `<option value="${s}" ${filterSource===s?'selected':''}>${s}</option>`).join('')}
     </select>
   `;
+}
+
+function toggleDate(date) {
+  if (selectedDates.has(date)) selectedDates.delete(date);
+  else selectedDates.add(date);
+  renderFilters();
+  renderAll();
+}
+
+function setAllDates() {
+  selectedDates.clear();
+  renderFilters();
+  renderAll();
 }
 
 async function fetchWeather(date) {
